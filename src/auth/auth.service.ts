@@ -3,16 +3,17 @@ import { UpdateAuthDto } from './dto/update-auth.dto';
 import { CompanyService } from 'src/company/company.service';
 import { CreateCompanyDto } from 'src/company/dto/create.company.dto';
 import * as bcrypt from 'bcrypt';
-// import { SignInDto } from './dto/sign-in.dto';
+import { SignInDto } from './dto/sign-in.dto';
 import { JwtService } from '@nestjs/jwt';
-
-//#26, 46:46
+import { EmailSenderService } from 'src/email-sender/email-sender.service';
+// import { randomUUID } from 'crypto';
 
 @Injectable()
 export class AuthService {
   constructor(
     private readonly companyService: CompanyService,
     private jwtService: JwtService,
+    private emailSender: EmailSenderService,
   ) {}
 
   getAllCompanies() {
@@ -26,48 +27,92 @@ export class AuthService {
       if (existingCompany)
         throw new BadRequestException('Company already exist');
       const hashedPassword = await bcrypt.hash(password, 10);
+
+      const validationToken = crypto.randomUUID();
+      const validationLinkValidateDate = new Date();
+      validationLinkValidateDate.setTime(
+        validationLinkValidateDate.getTime() + 3 * 60 * 1000,
+      );
+      // const validationLink = `${process.env.FRONTEND_URL}/verify-email?token=${validationToken}`;
+      const validationLink = `${process.env.FRONTEND_URL}?token=${validationToken}`;
       const newCompany = await this.companyService.create({
         name,
         email,
         password: hashedPassword,
         country,
         industry,
+        validationLink,
+        validationLinkValidateDate,
+        isVerified: false,
       });
-
-      return newCompany;
+      await this.emailSender.sendValidationEmail(email, name, validationLink);
+      return {
+        message:
+          'Company registered successfully! Please check your email to verify your account.',
+        company: newCompany,
+      };
     } catch (e) {
       console.log(e);
       throw e;
     }
   }
 
-  // async signIn(signInDto: SignInDto) {
-  //   try {
-  //     const { email, password } = signInDto;
-  //     if (!email || !password)
-  //       throw new BadRequestException('Email and Password are required');
-  //     const existingCompany = await this.companyService.findCompanyWithPassword(
-  //       { email },
-  //     );
-  //     if (!existingCompany)
-  //       throw new BadRequestException('Invalid credentials');
-  //     const isPasswordEqual = await bcrypt.compare(
-  //       password,
-  //       existingCompany.password,
-  //     );
-  //     if (!isPasswordEqual)
-  //       throw new BadRequestException('Invalid credentials');
-  //     const payload = {
-  //       sub: existingCompany._id,
-  //     };
+  async verifyEmail(token: string) {
+    try {
+      const company = await this.companyService.findOne({ validationLink: token });
+      console.log(company, "company")
 
-  //     const accessToken = await this.jwtService.signAsync(payload);
-  //     return { accessToken };
-  //   } catch (e) {
-  //     console.log(e);
-  //     throw e;
-  //   }
-  // }
+    //   if (!company) {
+    //     throw new BadRequestException('Invalid verification token');
+    //   }
+
+    //   // Check if token has expired
+    //   const now = new Date();
+    //   if (now > company.) {
+    //     throw new BadRequestException('Verification link has expired. Please request a new one.');
+    //   }
+
+    //   // Mark user as verified
+    //   await this.companyService.update(company_id, 
+    //     isVerified: true,
+    //     validationLink: null,
+    //     validationLinkValidateDate: null
+    //  );
+
+      return { message: 'Email verified successfully! You can now log in.' };
+    } catch (e) {
+      console.log(e);
+      throw e;
+    }
+  }
+
+  async signIn(signInDto: SignInDto) {
+    try {
+      const { email, password } = signInDto;
+      if (!email || !password)
+        throw new BadRequestException('Email and Password are required');
+      const existingCompany = await this.companyService.findCompanyWithPassword(
+        { email },
+      );
+      if (!existingCompany)
+        throw new BadRequestException('Invalid credentials');
+      const isPasswordEqual = await bcrypt.compare(
+        password,
+        existingCompany.password,
+      );
+      if (!isPasswordEqual)
+        throw new BadRequestException('Invalid credentials');
+      const payload = {
+        sub: existingCompany._id,
+      };
+
+      const accessToken = await this.jwtService.signAsync(payload);
+      return { accessToken };
+    } catch (e) {
+      console.log(e);
+      throw e;
+    }
+  }
 
   //*************************** */
   // create(createAuthDto: CreateAuthDto) {
