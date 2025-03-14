@@ -6,33 +6,96 @@ import {
   Patch,
   Param,
   Delete,
+  Query,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { UpdateAuthDto } from './dto/update-auth.dto';
 import { CreateCompanyDto } from 'src/company/dto/create.company.dto';
-// import { SignInDto } from './dto/sign-in.dto';
+import { SignInDto } from './dto/sign-in.dto';
+import { EmailSenderService } from 'src/email-sender/email-sender.service';
 
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private emailSenderService: EmailSenderService,
+  ) {}
 
   @Post('sign-up')
   signUp(@Body() createCompanyDto: CreateCompanyDto) {
-    return this.authService.signUp(createCompanyDto)
+    return this.authService.signUp(createCompanyDto);
+  }
+
+  @Post('sign-in')
+  signIn(@Body() signInDto: SignInDto) {
+    return this.authService.signIn(signInDto);
+  }
+
+  @Get('companies')
+  getAllCompanies() {
+    return this.authService.getAllCompanies();
+  }
+
+  @Get('/verify-email')
+  async verifyEmail(@Query('token') token: string) {
+    console.log(token, "token")
+    return this.authService.verifyEmail(token);
   }
 
 
-  // @Post("sign-in")
-  // signIn(@Body() signInDto: SignInDto) {
-  //   return this.authService.signIn(signInDto)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  // @Post('/send-email')
+  // sendEmail(@Body() body) {
+  //   console.log(body, "body ")
+  //   const { to, subject, text } = body;
+  //   return this.emailSenderService.sendEmailText(to, subject, text);
   // }
 
-
-
-  @Get('companies') 
-  getAllCompanies() {
-    return this.authService.getAllCompanies()
-  }
+  // @Post('send-Html')
+  // sendHtml(@Body() body) {
+  //   const { to, subject} = body;
+  //   console.log(body, "body")
+  //   return this.emailSenderService.sendValidationEmail(to, subject);
+  // }
 
   //*************************************************** */
   // @Post()

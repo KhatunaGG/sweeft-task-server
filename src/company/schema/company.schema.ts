@@ -16,6 +16,16 @@ export class Company {
 
   @Prop()
   industry: string;
+
+  @Prop({ type: Boolean, default: false })
+  isVerified: boolean;
+
+  @Prop({ type: String })
+  validationLink: string;
+
+  @Prop({ type: Date })
+  validationLinkValidateDate: Date;
+
 }
 
 export const CompanySchema = SchemaFactory.createForClass(Company);
