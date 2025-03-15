@@ -8,7 +8,7 @@ export class Company {
   @Prop({ unique: true })
   email: string;
 
-  @Prop({select: false})
+  @Prop({ select: false })
   password: string;
 
   @Prop()
@@ -25,7 +25,6 @@ export class Company {
 
   @Prop({ type: Date })
   validationLinkValidateDate: Date;
-
 }
 
 export const CompanySchema = SchemaFactory.createForClass(Company);

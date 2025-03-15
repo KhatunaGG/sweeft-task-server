@@ -33,23 +33,28 @@ export class AuthService {
       validationLinkValidateDate.setTime(
         validationLinkValidateDate.getTime() + 3 * 60 * 1000,
       );
-      // const validationLink = `${process.env.FRONTEND_URL}/verify-email?token=${validationToken}`;
-      const validationLink = `${process.env.FRONTEND_URL}?token=${validationToken}`;
+
+      const fullValidationLink = `${process.env.FRONTEND_URL}/sign-in?token=${validationToken}`;
+
       const newCompany = await this.companyService.create({
         name,
         email,
         password: hashedPassword,
         country,
         industry,
-        validationLink,
+        validationLink: validationToken,
         validationLinkValidateDate,
         isVerified: false,
       });
-      await this.emailSender.sendValidationEmail(email, name, validationLink);
+      await this.emailSender.sendValidationEmail(
+        email,
+        name,
+        fullValidationLink,
+      );
       return {
         message:
           'Company registered successfully! Please check your email to verify your account.',
-        company: newCompany,
+        companyId: newCompany._id,
       };
     } catch (e) {
       console.log(e);
@@ -58,26 +63,29 @@ export class AuthService {
   }
 
   async verifyEmail(token: string) {
+    console.log(token, 'token from service');
     try {
-      const company = await this.companyService.findOne({ validationLink: token });
-      console.log(company, "company")
+      const company = await this.companyService.findOne({
+        validationLink: token,
+      });
+      console.log(company, 'company');
 
-    //   if (!company) {
-    //     throw new BadRequestException('Invalid verification token');
-    //   }
+      if (!company) {
+        throw new BadRequestException('Invalid verification token');
+      }
 
-    //   // Check if token has expired
-    //   const now = new Date();
-    //   if (now > company.) {
-    //     throw new BadRequestException('Verification link has expired. Please request a new one.');
-    //   }
+      const now = new Date();
+      if (now > company.validationLinkValidateDate) {
+        throw new BadRequestException(
+          'Verification link has expired. Please request a new one.',
+        );
+      }
 
-    //   // Mark user as verified
-    //   await this.companyService.update(company_id, 
-    //     isVerified: true,
-    //     validationLink: null,
-    //     validationLinkValidateDate: null
-    //  );
+      await this.companyService.update(company._id, {
+        isVerified: true,
+        validationLink: null,
+        validationLinkValidateDate: null,
+      });
 
       return { message: 'Email verified successfully! You can now log in.' };
     } catch (e) {
