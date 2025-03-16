@@ -54,7 +54,6 @@ export class AuthService {
       return {
         message:
           'Company registered successfully! Please check your email to verify your account.',
-        companyId: newCompany._id,
       };
     } catch (e) {
       console.log(e);
@@ -115,6 +114,7 @@ export class AuthService {
       };
 
       const accessToken = await this.jwtService.signAsync(payload);
+      console.log(accessToken, "accessToken from back")
       return { accessToken };
     } catch (e) {
       console.log(e);

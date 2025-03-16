@@ -38,7 +38,6 @@ export class AuthController {
 
   @Get('/verify-email')
   async verifyEmail(@Query('token') token: string) {
-    console.log(token, "token")
     return this.authService.verifyEmail(token);
   }
 
