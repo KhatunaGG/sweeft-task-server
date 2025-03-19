@@ -1,4 +1,7 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
+import mongoose from 'mongoose';
+import { Role } from 'src/enums/roles.enum';
+import { Subscription } from 'src/enums/subscription.enum';
 
 @Schema({ timestamps: true })
 export class Company {
@@ -25,6 +28,18 @@ export class Company {
 
   @Prop({ type: Date })
   validationLinkValidateDate: Date;
+
+  @Prop({ type: String, enum: Role, default: Role.USER })
+  role: string;
+
+  @Prop({ type: String, enum: Subscription, default: Subscription.FREE })
+  subscriptionPlan: string;
+
+  @Prop({ typ: [mongoose.Schema.Types.ObjectId], ref: 'file', default: [] })
+  uploadedFiles: mongoose.Schema.Types.ObjectId[];
+
+  @Prop({ typ: [mongoose.Schema.Types.ObjectId], ref: 'user', default: [] })
+  user: mongoose.Schema.Types.ObjectId[];
 }
 
 export const CompanySchema = SchemaFactory.createForClass(Company);

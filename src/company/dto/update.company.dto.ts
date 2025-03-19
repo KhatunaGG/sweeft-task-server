@@ -5,4 +5,5 @@ export class UpdateCompanyDto extends PartialType(CreateCompanyDto) {
   validationToken?: string;
   isVerified?: boolean;
   validationLinkValidateDate?: Date;
+ 
 }
