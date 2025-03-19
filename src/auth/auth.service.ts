@@ -1,11 +1,17 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
-import { UpdateAuthDto } from './dto/update-auth.dto';
+import {
+  BadRequestException,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
+// import { UpdateAuthDto } from './dto/password-change.dto';
 import { CompanyService } from 'src/company/company.service';
 import { CreateCompanyDto } from 'src/company/dto/create.company.dto';
 import * as bcrypt from 'bcrypt';
 import { SignInDto } from './dto/sign-in.dto';
 import { JwtService } from '@nestjs/jwt';
 import { EmailSenderService } from 'src/email-sender/email-sender.service';
+import { UpdateCompanyDto } from 'src/company/dto/update.company.dto';
+import { Types } from 'mongoose';
 // import { randomUUID } from 'crypto';
 
 @Injectable()
@@ -62,7 +68,6 @@ export class AuthService {
   }
 
   async verifyEmail(token: string) {
-    console.log(token, 'token from service');
     try {
       const company = await this.companyService.findOne({
         validationLink: token,
@@ -111,11 +116,127 @@ export class AuthService {
         throw new BadRequestException('Invalid credentials');
       const payload = {
         sub: existingCompany._id,
+        role: existingCompany.role,
+        subscription: existingCompany.subscriptionPlan,
       };
 
       const accessToken = await this.jwtService.signAsync(payload);
-      console.log(accessToken, "accessToken from back")
+      console.log(accessToken, 'accessToken from back');
       return { accessToken };
+    } catch (e) {
+      console.log(e);
+      throw e;
+    }
+  }
+
+  // async updateSubscription(companyId: string, customId: string, updateCompanyDto: UpdateCompanyDto) {
+  //   console.log(companyId, "companyId from controller")
+  //   console.log(customId, "customId from controller")
+  //   console.log(updateCompanyDto, "updateAuthDto from controller")
+  //   // return "ok";
+  //   try {
+  //     if(!companyId)  throw new UnauthorizedException('Company ID is required');
+  //     if(!updateCompanyDto)  throw new BadRequestException();
+  //     const company = await this.companyService.getById(companyId)
+  //     if(!company) throw new BadRequestException('Not found')
+  //     const updatedCompany = {...company, updateCompanyDto}
+
+  //     const updatedSubscription  = await this.companyService.updateSubscription(companyId, updateCompanyDto)
+  //     console.log(updatedSubscription, "updatedSubscription")
+  //     // return {message: "The company subscription has been successfully updated."}
+
+  //   } catch(e) {
+  //     console.log(e)
+  //     throw e
+  //   }
+  // }
+
+  //with userId
+  // async getCurrentUser(userId: string) {
+  //   try {
+  //     const existingCompany = await this.companyService.getById(userId);
+  //     return existingCompany;
+  //   } catch (error) {
+  //     console.log(error);
+  //   }
+  // }
+
+  async updateCompany(
+    companyId: string,
+    customId: string,
+    updateCompanyDto: UpdateCompanyDto,
+  ) {
+    try {
+      if (!companyId) throw new UnauthorizedException('Company ID is required');
+      if (!updateCompanyDto)
+        throw new BadRequestException('Update data is required');
+      const company = await this.companyService.getById(companyId);
+      if (!company) throw new BadRequestException('Company not found');
+      const updatedCompanyDto = {
+        ...company.toObject(),
+        ...updateCompanyDto,
+      };
+      const updatedCompany = await this.companyService.updateCompany(
+        companyId,
+        updatedCompanyDto,
+      );
+      return { message: 'The company data has been successfully updated.' };
+    } catch (e) {
+      console.log(e);
+      throw e;
+    }
+  }
+
+  async getCurrentUser(companyId: string) {
+    try {
+      const existingCompany = await this.companyService.getById(companyId);
+      return existingCompany;
+    } catch (error) {
+      console.log(error);
+    }
+  }
+
+  async changePassword(
+    customId: string | Types.ObjectId,
+    currentPassword: string,
+    newPassword: string,
+  ) {
+    //   console.log("currentPassword:", currentPassword);
+    // console.log("company.password:", customId);
+    try {
+      if (!customId) throw new UnauthorizedException('User ID is required');
+      if (!currentPassword || !newPassword) {
+        throw new BadRequestException(
+          'Current password and new password are required',
+        );
+      }
+      const company = await this.companyService.findCompanyWithPassword({
+        _id: customId,
+      });
+      if (
+        !company ||
+        !company.password ||
+        typeof company.password !== 'string'
+      ) {
+        throw new BadRequestException('Invalid stored password');
+      }
+
+      const isPasswordCorrect = await bcrypt.compare(
+        currentPassword,
+        company.password,
+      );
+      if (!isPasswordCorrect) {
+        throw new BadRequestException('Current password is incorrect');
+      }
+      console.log(isPasswordCorrect, 'isPasswordCorrect');
+
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+      await this.companyService.updateCompany(customId, {
+        password: hashedPassword,
+      });
+      return { message: 'Password changed successfully' };
+
+      return 'ok';
     } catch (e) {
       console.log(e);
       throw e;
@@ -133,10 +254,6 @@ export class AuthService {
 
   findOne(id: number) {
     return `This action returns a #${id} auth`;
-  }
-
-  update(id: number, updateAuthDto: UpdateAuthDto) {
-    return `This action updates a #${id} auth`;
   }
 
   remove(id: number) {

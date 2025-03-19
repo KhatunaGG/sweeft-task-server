@@ -1,4 +1,4 @@
-import { Body, Injectable } from '@nestjs/common';
+import { Body, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { Company } from './schema/company.schema';
@@ -15,22 +15,39 @@ export class CompanyService {
     return this.companyModel.find();
   }
 
-  findCompanyWithPassword(query) {
-    return this.companyModel.findOne(query).select('+password');
-  }
-
   findOne(query) {
     return this.companyModel.findOne(query);
   }
 
-  async update(id: string | Types.ObjectId, updateCompanyDto: UpdateCompanyDto) {
+  async update(
+    id: string | Types.ObjectId,
+    updateCompanyDto: UpdateCompanyDto,
+  ) {
     return this.companyModel
-      .findByIdAndUpdate(
-        id,
-        { $set: updateCompanyDto },
-        { new: true }, 
-      )
+      .findByIdAndUpdate(id, { $set: updateCompanyDto }, { new: true })
       .exec();
+  }
+
+  getById(id: string | Types.ObjectId) {
+    return this.companyModel.findById(id);
+  }
+
+  findCompanyWithPassword(query) {
+    return this.companyModel.findOne(query).select('+password');
+  }
+
+  async updateCompany(
+    id: string | Types.ObjectId,
+    updateCompanyDto: UpdateCompanyDto,
+  ) {
+    try {
+      return await this.companyModel.findByIdAndUpdate(id, updateCompanyDto, {
+        new: true,
+      });
+    } catch (e) {
+      console.log(e);
+      throw e;
+    }
   }
 
   //************************** */
@@ -39,7 +56,7 @@ export class CompanyService {
     return this.companyModel.create(createCompanyDto);
   }
 
-  getById(id: string) {
-    return this.companyModel.findById(id);
-  }
+  // getById(id: string) {
+  //   return this.companyModel.findById(id);
+  // }
 }
