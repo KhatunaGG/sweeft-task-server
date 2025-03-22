@@ -5,6 +5,7 @@ import { CompanyModule } from 'src/company/company.module';
 import { ConfigModule } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { EmailSenderModule } from 'src/email-sender/email-sender.module';
+import { UserModule } from 'src/user/user.module';
 
 @Module({
   imports: [
@@ -16,7 +17,12 @@ import { EmailSenderModule } from 'src/email-sender/email-sender.module';
     }),
     
     CompanyModule,
-    EmailSenderModule
+    EmailSenderModule,
+    CompanyModule,
+
+
+    
+    UserModule
   ],
   controllers: [AuthController],
   providers: [AuthService],
