@@ -12,7 +12,23 @@ import { JwtService } from '@nestjs/jwt';
 import { EmailSenderService } from 'src/email-sender/email-sender.service';
 import { UpdateCompanyDto } from 'src/company/dto/update.company.dto';
 import { Types } from 'mongoose';
-// import { randomUUID } from 'crypto';
+import { UserService } from 'src/user/user.service';
+import { Role } from 'src/enums/roles.enum';
+
+interface CompanyPayload {
+  sub: string;
+  role: Role;
+  subscription: string;
+}
+
+interface UserPayload {
+  sub: string;
+  role: Role;
+
+  userId: string;
+}
+
+type PayloadType = CompanyPayload | UserPayload;
 
 @Injectable()
 export class AuthService {
@@ -20,6 +36,7 @@ export class AuthService {
     private readonly companyService: CompanyService,
     private jwtService: JwtService,
     private emailSender: EmailSenderService,
+    private userService: UserService,
   ) {}
 
   getAllCompanies() {
@@ -39,9 +56,7 @@ export class AuthService {
       validationLinkValidateDate.setTime(
         validationLinkValidateDate.getTime() + 3 * 60 * 1000,
       );
-
       const fullValidationLink = `${process.env.FRONTEND_URL}/sign-in?token=${validationToken}`;
-
       const newCompany = await this.companyService.create({
         name,
         email,
@@ -72,12 +87,9 @@ export class AuthService {
       const company = await this.companyService.findOne({
         validationLink: token,
       });
-      console.log(company, 'company');
-
       if (!company) {
         throw new BadRequestException('Invalid verification token');
       }
-
       const now = new Date();
       if (now > company.validationLinkValidateDate) {
         throw new BadRequestException(
@@ -98,30 +110,85 @@ export class AuthService {
     }
   }
 
+  //start before user's sign-in
+  // async signIn(signInDto: SignInDto) {
+  //   try {
+  //     const { email, password } = signInDto;
+  //     if (!email || !password)
+  //       throw new BadRequestException('Email and Password are required');
+  //     const existingCompany = await this.companyService.findCompanyWithPassword(
+  //       { email },
+  //     );
+  //     if (!existingCompany)
+  //       throw new BadRequestException('Invalid credentials');
+  //     const isPasswordEqual = await bcrypt.compare(
+  //       password,
+  //       existingCompany.password,
+  //     );
+  //     if (!isPasswordEqual)
+  //       throw new BadRequestException('Invalid credentials');
+  //     const payload = {
+  //       sub: existingCompany._id,
+  //       role: existingCompany.role,
+  //       subscription: existingCompany.subscriptionPlan,
+  //     };
+  //     const accessToken = await this.jwtService.signAsync(payload);
+  //     return { accessToken };
+  //   } catch (e) {
+  //     console.log(e);
+  //     throw e;
+  //   }
+  // }
+
   async signIn(signInDto: SignInDto) {
     try {
       const { email, password } = signInDto;
       if (!email || !password)
         throw new BadRequestException('Email and Password are required');
-      const existingCompany = await this.companyService.findCompanyWithPassword(
-        { email },
-      );
-      if (!existingCompany)
+
+      const isCompany = await this.companyService.findOne({ email });
+      const isUser = await this.userService.findOne({ userEmail: email });
+      if (!isCompany && !isUser) {
         throw new BadRequestException('Invalid credentials');
-      const isPasswordEqual = await bcrypt.compare(
-        password,
-        existingCompany.password,
-      );
+      }
+
+      let result;
+      if (isCompany) {
+        result = await this.companyService.findCompanyWithPassword({ email });
+      } else if (isUser) {
+        result = await this.userService.findUserByPassword({
+          userEmail: email,
+        });
+      }
+
+      if (!result) {
+        throw new BadRequestException('Invalid credentials');
+      }
+
+      let isPasswordEqual;
+      if (isCompany) {
+        isPasswordEqual = await bcrypt.compare(password, result.password);
+      } else if (isUser) {
+        isPasswordEqual = await bcrypt.compare(password, result.userPassword);
+      }
+
       if (!isPasswordEqual)
         throw new BadRequestException('Invalid credentials');
-      const payload = {
-        sub: existingCompany._id,
-        role: existingCompany.role,
-        subscription: existingCompany.subscriptionPlan,
-      };
-
+      let payload: PayloadType;
+      if (isCompany) {
+        payload = {
+          sub: result._id,
+          role: result.role as Role,
+          subscription: result.subscriptionPlan,
+        };
+      } else if (isUser) {
+        payload = {
+          sub: result._id,
+          role: result.role as Role,
+          userId: result._id,
+        };
+      }
       const accessToken = await this.jwtService.signAsync(payload);
-      console.log(accessToken, 'accessToken from back');
       return { accessToken };
     } catch (e) {
       console.log(e);
@@ -187,12 +254,62 @@ export class AuthService {
     }
   }
 
-  async getCurrentUser(companyId: string) {
+  //START - OK, BEFORE USER
+  // async getCurrentUser(companyId: string) {
+  //   try {
+  //     const existingCompany = await this.companyService.getById(companyId);
+  //     return existingCompany;
+  //   } catch (error) {
+  //     console.log(error);
+  //   }
+  // }
+
+  // async getCurrentUser(id: string, type: 'company' | 'user') {
+  //   try {
+  //     if (type === 'company') {
+  //       const existingCompany = await this.companyService.getById(id);
+  //       return existingCompany;
+  //     } else if (type === 'user') {
+  //       const existingUser = await this.userService.getById(id);
+  //       return existingUser;
+  //     }
+  //     throw new Error("Invalid type for current user request");
+  //   } catch (error) {
+  //     console.log(error);
+  //     throw error; // Rethrow the error to handle it properly in the controller
+  //   }
+  // }
+
+
+  async getCurrentUser(
+    id: string,
+    type: 'company' | 'user',
+    companyId?: string,
+  ) {
     try {
-      const existingCompany = await this.companyService.getById(companyId);
-      return existingCompany;
+      if (type === 'company') {
+        const existingCompany = await this.companyService
+          .getById(id)
+          .select('-password -_id');
+        return existingCompany.toObject();
+      } else if (type === 'user') {
+        const existingUser = await this.userService.getById(id);
+        const existingCompany = await this.companyService
+          .getById(existingUser.companyId)
+          .select('-password -_id');
+
+        const userData = existingUser.toObject();
+        const companyData = existingCompany.toObject();
+
+        return {
+          user: userData,
+          company: companyData,
+        };
+      }
+      throw new Error('Invalid type for current user request');
     } catch (error) {
       console.log(error);
+      throw error; 
     }
   }
 
@@ -201,9 +318,7 @@ export class AuthService {
     currentPassword: string,
     newPassword: string,
   ) {
-    //   console.log("currentPassword:", currentPassword);
-    // console.log("company.password:", customId);
-    try {
+   try {
       if (!customId) throw new UnauthorizedException('User ID is required');
       if (!currentPassword || !newPassword) {
         throw new BadRequestException(
@@ -228,15 +343,11 @@ export class AuthService {
       if (!isPasswordCorrect) {
         throw new BadRequestException('Current password is incorrect');
       }
-      console.log(isPasswordCorrect, 'isPasswordCorrect');
-
       const hashedPassword = await bcrypt.hash(newPassword, 10);
       await this.companyService.updateCompany(customId, {
         password: hashedPassword,
       });
       return { message: 'Password changed successfully' };
-
-      return 'ok';
     } catch (e) {
       console.log(e);
       throw e;

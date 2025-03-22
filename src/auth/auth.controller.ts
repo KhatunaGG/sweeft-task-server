@@ -9,6 +9,8 @@ import {
   Query,
   UseGuards,
   Req,
+  UnauthorizedException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 // import { UpdateAuthDto } from './dto/password-change.dto';
@@ -19,6 +21,7 @@ import { AuthGuard } from './guard/auth.guard';
 import { Company } from 'src/company/decorators/company.decorator';
 import { UpdateCompanyDto } from 'src/company/dto/update.company.dto';
 import { UpdatePasswordDto } from './dto/update-password.dto.';
+import { retryWhen } from 'rxjs';
 
 @Controller('auth')
 export class AuthController {
@@ -47,10 +50,38 @@ export class AuthController {
     return this.authService.verifyEmail(token);
   }
 
+  //START before: user
+  // @Get('current-user')
+  // @UseGuards(AuthGuard)
+  // getCurrentUser(@Req() req) {
+  //   return this.authService.getCurrentUser(req.companyId);
+  // }
+
+  // @Get('current-user')
+  // @UseGuards(AuthGuard)
+  // getCurrentUser(@Req() req) {
+  //   console.log(req.companyId, 'req.companyId - controller');
+  //   console.log(req.userId, 'req.userID- controller');
+  //   if (req.companyId) {
+  //     return this.authService.getCurrentUser(req.companyId, 'company');
+  //   } else if (req.userId) {
+  //     return this.authService.getCurrentUser(req.userId, 'user');
+  //   }
+  //   throw new Error('No valid ID found in the request');
+  // }
+
+
   @Get('current-user')
   @UseGuards(AuthGuard)
-  getCurrentUser(@Req() req) {
-    return this.authService.getCurrentUser(req.companyId);
+  async getCurrentUser(@Req() req) {
+    console.log(req.companyId, 'req.companyId - controller');
+
+    if (req.companyId) {
+      return await this.authService.getCurrentUser(req.companyId, 'company');
+    } else if (req.userId) {
+      return await this.authService.getCurrentUser(req.userId, 'user');
+    }
+    throw new Error('No valid ID found in the request');
   }
 
   @Patch('/update-company')
@@ -67,6 +98,21 @@ export class AuthController {
     );
   }
 
+  //START BEFORE: USER and ROLE
+  // @Post('change-password')
+  // @UseGuards(AuthGuard)
+  // async changePassword(
+  //   @Company() customId,
+  //   @Body() updatePasswordDto: UpdatePasswordDto,
+  // ) {
+  //   const { currentPassword, newPassword } = updatePasswordDto;
+  //   return await this.authService.changePassword(
+  //     customId,
+  //     currentPassword,
+  //     newPassword,
+  //   );
+  // }
+
   @Post('change-password')
   @UseGuards(AuthGuard)
   async changePassword(
@@ -74,29 +120,19 @@ export class AuthController {
     @Body() updatePasswordDto: UpdatePasswordDto,
   ) {
     const { currentPassword, newPassword } = updatePasswordDto;
-    return await this.authService.changePassword(customId, currentPassword, newPassword)
+    if (!customId) {
+      if (!customId) {
+        throw new ForbiddenException('Permission denied');
+      }
+    }
+    return await this.authService.changePassword(
+      customId,
+      currentPassword,
+      newPassword,
+    );
   }
 
-  // @Post('/send-email')
-  // sendEmail(@Body() body) {
-  //   console.log(body, "body ")
-  //   const { to, subject, text } = body;
-  //   return this.emailSenderService.sendEmailText(to, subject, text);
-  // }
-
-  // @Post('send-Html')
-  // sendHtml(@Body() body) {
-  //   const { to, subject} = body;
-  //   console.log(body, "body")
-  //   return this.emailSenderService.sendValidationEmail(to, subject);
-  // }
-
-  //*************************************************** */
-  // @Post()
-  // create(@Body() createAuthDto: CreateAuthDto) {
-  //   return this.authService.create(createAuthDto);
-  // }
-
+ 
   @Get()
   findAll() {
     return this.authService.findAll();
