@@ -174,20 +174,29 @@ export class AuthService {
 
       if (!isPasswordEqual)
         throw new BadRequestException('Invalid credentials');
-      let payload: PayloadType;
-      if (isCompany) {
-        payload = {
-          sub: result._id,
-          role: result.role as Role,
-          subscription: result.subscriptionPlan,
-        };
-      } else if (isUser) {
-        payload = {
-          sub: result._id,
-          role: result.role as Role,
-          userId: result._id,
-        };
-      }
+
+      let payload = {
+        sub: isCompany ? result._id : result.companyId,
+        role: result.role,
+        userId: isCompany ? result._id : result._id,
+        subscription: result.subscriptionPlan,
+      };
+
+      // let payload: PayloadType;
+      // if (isCompany) {
+      //   payload = {
+      //     sub: result._id,
+      //     role: result.role as Role,
+      //     subscription: result.subscriptionPlan,
+      //   };
+      // } else if (isUser) {
+      //   payload = {
+      //     sub: result._id,
+      //     role: result.role as Role,
+      //     userId: result._id,
+      //   };
+      // }
+
       const accessToken = await this.jwtService.signAsync(payload);
       return { accessToken };
     } catch (e) {
@@ -255,14 +264,23 @@ export class AuthService {
   }
 
   //START - OK, BEFORE USER
-  // async getCurrentUser(companyId: string) {
-  //   try {
-  //     const existingCompany = await this.companyService.getById(companyId);
-  //     return existingCompany;
-  //   } catch (error) {
-  //     console.log(error);
-  //   }
-  // }
+  async getCurrentUser(userId: string, companyId: string, role: string) {
+
+    if (!companyId || !userId) {
+      throw new UnauthorizedException();
+    }
+    try {
+      const existingUser = await this.userService.getById(userId);
+      const existingCompany = await this.companyService.getById(companyId);
+
+      return {
+        company: existingCompany,
+        user: existingUser,
+      };
+    } catch (error) {
+      console.log(error);
+    }
+  }
 
   // async getCurrentUser(id: string, type: 'company' | 'user') {
   //   try {
@@ -280,45 +298,46 @@ export class AuthService {
   //   }
   // }
 
+  // async getCurrentUser(
+  //   id: string,
+  //   type: 'company' | 'user',
+  //   companyId?: string,
+  // ) {
+  //   try {
+  //     if (type === 'company') {
+  //       const existingCompany = await this.companyService
+  //         .getById(id)
+  //         .select('-password');
+  //       return existingCompany.toObject();
+  //     } else if (type === 'user') {
+  //       const existingUser = await this.userService
+  //         .getById(id)
+  //         .select('-password');
+  //       const existingCompany = await this.companyService
+  //         .getById(existingUser.companyId)
+  //         .select('-password');
 
-  async getCurrentUser(
-    id: string,
-    type: 'company' | 'user',
-    companyId?: string,
-  ) {
-    try {
-      if (type === 'company') {
-        const existingCompany = await this.companyService
-          .getById(id)
-          .select('-password -_id');
-        return existingCompany.toObject();
-      } else if (type === 'user') {
-        const existingUser = await this.userService.getById(id);
-        const existingCompany = await this.companyService
-          .getById(existingUser.companyId)
-          .select('-password -_id');
+  //       const userData = existingUser.toObject();
+  //       const companyData = existingCompany.toObject();
 
-        const userData = existingUser.toObject();
-        const companyData = existingCompany.toObject();
-
-        return {
-          user: userData,
-          company: companyData,
-        };
-      }
-      throw new Error('Invalid type for current user request');
-    } catch (error) {
-      console.log(error);
-      throw error; 
-    }
-  }
+  //       return {
+  //         user: userData,
+  //         company: companyData,
+  //       };
+  //     }
+  //     throw new Error('Invalid type for current user request');
+  //   } catch (error) {
+  //     console.log(error);
+  //     throw error;
+  //   }
+  // }
 
   async changePassword(
     customId: string | Types.ObjectId,
     currentPassword: string,
     newPassword: string,
   ) {
-   try {
+    try {
       if (!customId) throw new UnauthorizedException('User ID is required');
       if (!currentPassword || !newPassword) {
         throw new BadRequestException(

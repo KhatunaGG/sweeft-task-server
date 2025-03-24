@@ -300,7 +300,7 @@ async verifyUserByVerificationToken(token: string) {
   }
 
   findAll() {
-    return `This action returns all user`;
+    return this.userModel.find();
   }
 
   findOne(query) {

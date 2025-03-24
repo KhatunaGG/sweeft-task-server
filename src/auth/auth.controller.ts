@@ -17,7 +17,7 @@ import { AuthService } from './auth.service';
 import { CreateCompanyDto } from 'src/company/dto/create.company.dto';
 import { SignInDto } from './dto/sign-in.dto';
 import { EmailSenderService } from 'src/email-sender/email-sender.service';
-import { AuthGuard } from './guard/auth.guard';
+import { AuthGuard } from '../guard/auth.guard';
 import { Company } from 'src/company/decorators/company.decorator';
 import { UpdateCompanyDto } from 'src/company/dto/update.company.dto';
 import { UpdatePasswordDto } from './dto/update-password.dto.';
@@ -71,18 +71,29 @@ export class AuthController {
   // }
 
 
+  // @Get('current-user')
+  // @UseGuards(AuthGuard)
+  // async getCurrentUser(@Req() req) {
+  //   console.log(req.companyId, 'req.companyId - controller');
+
+  //   if (req.companyId) {
+  //     return await this.authService.getCurrentUser(req.companyId, 'company');
+  //   } else if (req.userId) {
+  //     return await this.authService.getCurrentUser(req.userId, 'user');
+  //   }
+  //   throw new Error('No valid ID found in the request');
+  // }
+
+
   @Get('current-user')
   @UseGuards(AuthGuard)
   async getCurrentUser(@Req() req) {
-    console.log(req.companyId, 'req.companyId - controller');
-
-    if (req.companyId) {
-      return await this.authService.getCurrentUser(req.companyId, 'company');
-    } else if (req.userId) {
-      return await this.authService.getCurrentUser(req.userId, 'user');
-    }
-    throw new Error('No valid ID found in the request');
+    return await this.authService.getCurrentUser(req.userId, req.companyId, req.role)
   }
+
+
+
+
 
   @Patch('/update-company')
   @UseGuards(AuthGuard)
