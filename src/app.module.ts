@@ -8,6 +8,9 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { MailerModule } from '@nestjs-modules/mailer';
 import { EmailSenderModule } from './email-sender/email-sender.module';
 import { UserModule } from './user/user.module';
+import { FileModule } from './file/file.module';
+import { AwsS3Module } from './aws-s3/aws-s3.module';
+import { AuthGuard } from './guard/auth.guard';
 
 @Module({
   imports: [
@@ -27,8 +30,10 @@ import { UserModule } from './user/user.module';
     AuthModule,
     EmailSenderModule,
     UserModule,
+    FileModule,
+    AwsS3Module,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [AppService, AuthGuard],
 })
 export class AppModule {}
