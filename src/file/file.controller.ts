@@ -17,6 +17,7 @@ import { UpdateFileDto } from './dto/update-file.dto';
 import { AuthGuard } from 'src/guard/auth.guard';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { Company } from 'src/company/decorators/company.decorator';
+import { Types } from 'mongoose';
 
 @Controller('file')
 export class FileController {
@@ -32,24 +33,29 @@ export class FileController {
   ) {
     const path = Math.random().toString().slice(2);
     const filePath = `sweeft-task/${path}`;
-    const fileOwnerId = req.userId ? req.userId : req.companyId;
+    // const fileOwnerId = req.userId ? req.userId : req.companyId;
     const { companyId, userPermissions } = body;
     // console.log(req.userId, "req.userId")
     // console.log(req.companyId, "companyId")
     // console.log(req.role, "role")
 
     // console.log(userPermissions, "permission from controller")
-
-    
-    // return await this.fileService.uploadFile(
-    //   filePath,
-    //   file.buffer,
-    //   fileOwnerId,
-    //   companyId,
-    //   userPermissions
-    // );
+    const fileOwnerId = req.userId
+    const fileOwnerCompanyId = req.companyId
+    return await this.fileService.uploadFile(
+      filePath,
+      file.buffer,
+      fileOwnerId,
+      fileOwnerCompanyId,
+      userPermissions
+    );
   }
 
+  @Get()
+  @UseGuards(AuthGuard)
+  findAll(@Req() req, @Company() customId: Types.ObjectId | string ) {
+    return this.fileService.findAll(req.userId, req.companyId, req.role, customId);
+  }
 
 
 
@@ -58,10 +64,6 @@ export class FileController {
     return this.fileService.create(createFileDto);
   }
 
-  @Get()
-  findAll() {
-    return this.fileService.findAll();
-  }
 
   @Get(':id')
   findOne(@Param('id') id: string) {
