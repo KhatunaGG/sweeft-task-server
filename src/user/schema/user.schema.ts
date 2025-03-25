@@ -30,6 +30,7 @@
 // export const UserSchema = SchemaFactory.createForClass(User);
 
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
+import mongoose from 'mongoose';
 import { Role } from 'src/enums/roles.enum';
 
 @Schema({ timestamps: true })
@@ -43,7 +44,7 @@ export class User {
   @Prop()
   userEmail: string;
 
-  @Prop({select: false})
+  @Prop({ select: false })
   userPassword: string;
 
   @Prop()
@@ -60,6 +61,18 @@ export class User {
 
   @Prop({ type: String, enum: Role, default: Role.USER })
   role: string;
+
+
+
+
+
+  
+  @Prop({
+    type: [{ type: mongoose.Schema.Types.ObjectId }],
+    ref: 'file',
+    default: [],
+  })
+  uploadedFiles: mongoose.Types.ObjectId[];
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);
