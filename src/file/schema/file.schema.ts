@@ -17,10 +17,12 @@ export class File {
   @Prop({ type: String, required: true })  
   fileOwnerCompanyId: string;
 
-  @Prop({ type: String })
-  userPermissions: [{ type: String }]
+  // @Prop({ type: String })
+  // userPermissions: [{ type: String }]
 
 
+  @Prop({type: [String], default: []})
+  userPermissions: string[]
 
 
 

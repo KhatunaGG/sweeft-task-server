@@ -82,7 +82,13 @@ export class FileService {
         );
         await existingCompany.save();
       }
-      return filePathFromAws;
+
+      return {
+        uploadedFile: newFile,
+        filePathFromAws,
+      };
+
+      // return filePathFromAws;
     } catch (e) {
       console.log(e);
       throw e;
@@ -161,12 +167,35 @@ export class FileService {
     }
   }
 
+  async updateUserPermissions(
+    companyId: Types.ObjectId | string,
+    fileId: Types.ObjectId | string,
+    userPermissions: [String],
+  ) {
+
+    console.log(companyId, "companyId")
+    console.log(fileId, "fileId")
+    console.log(userPermissions, "userPermissions")
+    try {
+      if(!companyId) {
+        throw new UnauthorizedException();
+      }
+      if(!fileId) {
+        throw new BadGatewayException('File ID is required')
+      }
+      const existingFile = await this.fileModel.findById(fileId)
+      if(!existingFile) {
+        throw new NotFoundException("File not found")
+      }
+      console.log(existingFile, "existingFile")
+
+    }catch(e) {
+      console.log(e)
+    }
 
 
+  }
 
-
-
-  
   create(createFileDto: CreateFileDto) {
     return this.fileModel.create(createFileDto);
   }

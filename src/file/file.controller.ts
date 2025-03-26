@@ -51,6 +51,22 @@ export class FileController {
     );
   }
 
+
+
+
+  // @Patch('update-permissions')
+  // @UseGuards(AuthGuard)
+  // async userPermissions(@Req() req, @Body() body: {fileId: string, userPermissions: [String]} ) {
+  //   await this.fileService.updateUserPermissions(req.companyId, body.fileId, body.userPermissions)
+
+
+  //   return "ok"
+  // }
+
+
+
+
+
   @Get()
   @UseGuards(AuthGuard)
   findAll(@Req() req, @Company() customId: Types.ObjectId | string ) {
