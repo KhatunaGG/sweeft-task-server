@@ -386,6 +386,18 @@ export class AuthService {
     return `This action returns a #${id} auth`;
   }
 
+
+
+  // async findCompanyById(id: Types.ObjectId | string) {
+  //   try {
+  //     await this.companyService.getById(id)
+
+  //   } catch(e) {
+  //     console.log(e)
+  //     throw e
+  //   }
+  // }
+
   remove(id: number) {
     return `This action removes a #${id} auth`;
   }
