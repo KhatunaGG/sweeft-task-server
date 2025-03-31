@@ -15,14 +15,12 @@ import { UserModule } from 'src/user/user.module';
       secret: process.env.JWT_SECRET,
       signOptions: { expiresIn: '1h' },
     }),
-    
+
     CompanyModule,
     EmailSenderModule,
-    CompanyModule,
+    // CompanyModule,
 
-
-    
-    UserModule
+    UserModule,
   ],
   controllers: [AuthController],
   providers: [AuthService],

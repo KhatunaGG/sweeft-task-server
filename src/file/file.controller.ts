@@ -29,70 +29,72 @@ export class FileController {
   async uploadFile(
     @UploadedFile() file: Express.Multer.File,
     @Req() req,
-    @Body() body: { companyId: string; userPermissions: string[] }, 
+    @Body()
+    body: { companyId: string; userPermissions: string[]; fileName: string },
   ) {
     const path = Math.random().toString().slice(2);
     const filePath = `sweeft-task/${path}`;
-    // const fileOwnerId = req.userId ? req.userId : req.companyId;
-    const { companyId, userPermissions } = body;
-    // console.log(req.userId, "req.userId")
-    // console.log(req.companyId, "companyId")
-    // console.log(req.role, "role")
-
-    // console.log(userPermissions, "permission from controller")
-    const fileOwnerId = req.userId
-    const fileOwnerCompanyId = req.companyId
+    const { companyId, userPermissions, fileName } = body;
+    const fileOwnerId = req.userId;
+    const fileOwnerCompanyId = req.companyId;
     return await this.fileService.uploadFile(
       filePath,
       file.buffer,
       fileOwnerId,
       fileOwnerCompanyId,
-      userPermissions
+      userPermissions,
+      fileName,
     );
   }
 
-
-
+  @Patch('/:fileId')
+  @UseGuards(AuthGuard)
+  async update(
+    @Req() req,
+    @Body() updateFileDto: UpdateFileDto,
+    @Param('fileId') fileId: Types.ObjectId | string,
+  ) {
+    console.log(fileId, 'fileId from controller');
+    await this.fileService.update(
+      req.userId,
+      req.companyId,
+      updateFileDto,
+      fileId,
+    );
+  }
 
   // @Patch('update-permissions')
   // @UseGuards(AuthGuard)
   // async userPermissions(@Req() req, @Body() body: {fileId: string, userPermissions: [String]} ) {
   //   await this.fileService.updateUserPermissions(req.companyId, body.fileId, body.userPermissions)
 
-
   //   return "ok"
   // }
 
-
-
-
-
   @Get()
   @UseGuards(AuthGuard)
-  findAll(@Req() req, @Company() customId: Types.ObjectId | string ) {
-    return this.fileService.findAll(req.userId, req.companyId, req.role, customId);
+  findAll(@Req() req, @Company() customId: Types.ObjectId | string) {
+    return this.fileService.findAll(req.userId, req.companyId, customId);
   }
-
-
 
   @Post()
   create(@Body() createFileDto: CreateFileDto) {
     return this.fileService.create(createFileDto);
   }
 
-
   @Get(':id')
   findOne(@Param('id') id: string) {
-    return this.fileService.findOne(+id);
+    return this.fileService.findOne(id);
   }
 
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateFileDto: UpdateFileDto) {
-    return this.fileService.update(+id, updateFileDto);
-  }
+  // @Patch(':id')
+  // update(@Param('id') id: string, @Body() updateFileDto: UpdateFileDto) {
+  //   return this.fileService.update(+id, updateFileDto);
+  // }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.fileService.remove(+id);
+  @UseGuards(AuthGuard)
+  remove(@Req() req, @Param('id') id: Types.ObjectId) {
+    return this.fileService.remove(req.companyId, req.userId, id);
   }
 }

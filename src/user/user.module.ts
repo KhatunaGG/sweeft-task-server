@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { UserService } from './user.service';
 import { UserController } from './user.controller';
 import { MongooseModule } from '@nestjs/mongoose';
@@ -8,6 +8,9 @@ import { JwtModule } from '@nestjs/jwt';
 import { EmailSenderModule } from 'src/email-sender/email-sender.module';
 import { CompanyModule } from 'src/company/company.module';
 import { AuthGuard } from 'src/guard/auth.guard';
+import { FileModule } from 'src/file/file.module';
+
+import { FileService } from 'src/file/file.service';
 
 @Module({
   imports: [
@@ -19,11 +22,17 @@ import { AuthGuard } from 'src/guard/auth.guard';
     }),
     MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
     EmailSenderModule,
-    CompanyModule
+    CompanyModule,
+
+
+
+
+    
+
+    // forwardRef(() => FileModule),
   ],
   controllers: [UserController],
   providers: [UserService, AuthGuard],
-  exports: [UserService]
-
+  exports: [UserService],
 })
 export class UserModule {}

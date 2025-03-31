@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { FileService } from './file.service';
 import { FileController } from './file.controller';
 import { MongooseModule } from '@nestjs/mongoose';
@@ -10,15 +10,22 @@ import { CompanyModule } from 'src/company/company.module';
 import { UserModule } from 'src/user/user.module';
 import { AuthModule } from 'src/auth/auth.module';
 
+
+import { UserService } from 'src/user/user.service';
+
 @Module({
   imports: [
     MongooseModule.forFeature([{ name: File.name, schema: FileSchema }]),
     AwsS3Module,
-    UserModule,
     AuthModule,
-    CompanyModule
+    CompanyModule,
+    UserModule
+
+
+    // forwardRef(() => UserModule),
   ],
   controllers: [FileController],
   providers: [FileService, AuthGuard],
+  exports: [FileService]
 })
 export class FileModule {}

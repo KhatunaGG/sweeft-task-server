@@ -15,6 +15,7 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UserSchema } from './schema/user.schema';
 import { AuthGuard } from 'src/guard/auth.guard';
+import { Types } from 'mongoose';
 
 @Controller('user')
 export class UserController {
@@ -39,8 +40,9 @@ export class UserController {
   }
 
   @Get()
-  findAll() {
-    return this.userService.findAll();
+  @UseGuards(AuthGuard)
+  findAll(@Req() req) {
+    return this.userService.findAll(req.userId, req.companyId);
   }
 
   @Get(':id')
@@ -59,7 +61,14 @@ export class UserController {
   // }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.userService.remove(+id);
+  @UseGuards(AuthGuard)
+  remove( @Req() req, @Param('id') id) {
+    return this.userService.remove(req.companyId, req.userId, id);
+  }
+
+  @Patch('/:id')
+  @UseGuards(AuthGuard)
+  update(@Req() req, @Param("id") id: string, @Body() updatedUserDto: UpdateUserDto) {
+    return this.userService.update(id, updatedUserDto)
   }
 }

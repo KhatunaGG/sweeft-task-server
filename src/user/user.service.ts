@@ -2,6 +2,8 @@ import {
   BadGatewayException,
   BadRequestException,
   ForbiddenException,
+  forwardRef,
+  Inject,
   Injectable,
   InternalServerErrorException,
   NotFoundException,
@@ -18,68 +20,22 @@ import { EmailSenderService } from 'src/email-sender/email-sender.service';
 import { Company } from 'src/company/decorators/company.decorator';
 import { CompanyService } from 'src/company/company.service';
 import { JwtService } from '@nestjs/jwt';
+import { FileService } from 'src/file/file.service';
 
 @Injectable()
 export class UserService {
   constructor(
     @InjectModel(User.name) private userModel: Model<User>,
+    // @Inject(forwardRef(() => FileService)) private fileService: FileService, 
+    // private fileService: FileService,
     private emailSender: EmailSenderService,
     private companyService: CompanyService,
     private jwtService: JwtService,
   ) {}
 
-  //start:
-  // async create(companyId, createUserDto: CreateUserDto) {
-  //   try {
-  //     const { userEmail } = createUserDto;
-  //     if (!userEmail) {
-  //       throw new BadRequestException('User Email is required');
-  //     }
-  //     const existingUser = await this.userModel.findOne({ userEmail });
-  //     if (existingUser) {
-  //       throw new BadRequestException('User already exists');
-  //     }
-  //     const validationToken = crypto.randomUUID();
-  //     const validationLinkValidateDate = new Date();
-  //     validationLinkValidateDate.setTime(
-  //       validationLinkValidateDate.getTime() + 3 * 60 * 1000,
-  //     );
-  //     const fullValidationLink = `${process.env.FRONTEND_URL}/user-sign-in?token=${validationToken}`;
-  //     const newUser = {
-  //       userEmail,
-  //       companyId,
-  //       validationLink: validationToken,
-  //       validationLinkValidateDate,
-  //       isVerified: false,
-  //     };
-  //     const createdUser = await this.userModel.create(newUser);
-  //     await createdUser.save();
-  //     await this.emailSender.sendValidationEmail(
-  //       userEmail,
-  //       'Dear Colleague',
-  //       fullValidationLink,
-  //     );
-  //     return {
-  //       message: 'User added successfully',
-  //       status: 'success',
-  //     };
-  //   } catch (e) {
-  //     console.log('Error creating user:', e);
-  //     // throw e;
-
-  //     if (e instanceof BadRequestException || e instanceof NotFoundException) {
-  //       throw e;
-  //     } else {
-  //       throw new InternalServerErrorException(
-  //         'An unexpected error occurred while sending the verification email',
-  //       );
-  //     }
-  //   }
-  // }
-
   async create(companyId, createUserDto: CreateUserDto) {
-    if(!companyId) {
-       throw new ForbiddenException('Permission denied');
+    if (!companyId) {
+      throw new ForbiddenException('Permission denied');
     }
     try {
       const { userEmail } = createUserDto;
@@ -117,7 +73,6 @@ export class UserService {
     } catch (e) {
       console.log('Error creating user:', e);
       // throw e;
-
       if (e instanceof BadRequestException || e instanceof NotFoundException) {
         throw e;
       } else {
@@ -128,107 +83,45 @@ export class UserService {
     }
   }
 
+  async verifyUserByVerificationToken(token: string) {
+    try {
+      const existingUser = await this.userModel.findOne({
+        validationLink: token,
+        isVerified: false,
+      });
+      if (!existingUser) {
+        throw new NotFoundException('User not found or already verified');
+      }
 
-
-
-
-  //****************************************************************************************************** */
-
-//start: 
-// async verifyUserByVerificationToken(token: string) {
-//   try {
-//     const existingUser = await this.userModel.findOne({ 
-//       validationLink: token,
-//       isVerified: false 
-//     });
-//     if (!existingUser) {
-//       console.log('No unverified user found with token:', token);
-//       throw new NotFoundException('User not found or already verified');
-//     }
-//     const now = new Date();
-//     if (now > existingUser.validationLinkValidateDate) {
-//       throw new BadRequestException(
-//         'Verification link has expired. Please request a new one.'
-//       );
-//     }
-//     const updatedUser = await this.userModel.findByIdAndUpdate(
-//       existingUser._id,
-//       {
-//         isVerified: true,
-//         validationLink: null,
-//         validationLinkValidateDate: null,
-//       },
-//       { new: true }
-//     );
-//     return updatedUser;
-//   } catch (e) {
-//     console.error('Error in verifyUserByVerificationToken:', e);
-//     // throw e;
-//     if (e instanceof BadRequestException || e instanceof NotFoundException) {
-//       throw e;
-//     } else {
-//       throw new InternalServerErrorException(
-//         'An unexpected error occurred while sending the verification email',
-//       );
-//     }
-//   }
-// }
-
- 
-
-async verifyUserByVerificationToken(token: string) {
-  try {
-    const existingUser = await this.userModel.findOne({ 
-      validationLink: token,
-      isVerified: false 
-    });
-    if (!existingUser) {
-      console.log('No unverified user found with token:', token);
-      throw new NotFoundException('User not found or already verified');
-    }
-
-    const now = new Date();
-    if (now > existingUser.validationLinkValidateDate) {
-      throw new BadRequestException(
-        'Verification link has expired. Please request a new one.'
+      const now = new Date();
+      if (now > existingUser.validationLinkValidateDate) {
+        throw new BadRequestException(
+          'Verification link has expired. Please request a new one.',
+        );
+      }
+      const updatedUser = await this.userModel.findByIdAndUpdate(
+        existingUser._id,
+        {
+          isVerified: true,
+          validationLink: null,
+          validationLinkValidateDate: null,
+        },
+        { new: true },
       );
-    }
-    const updatedUser = await this.userModel.findByIdAndUpdate(
-      existingUser._id,
-      {
-        isVerified: true,
-        validationLink: null,
-        validationLinkValidateDate: null,
-      },
-      { new: true }
-    );
-    return updatedUser;
-  } catch (e) {
-    console.error('Error in verifyUserByVerificationToken:', e);
-    // throw e;
-    if (e instanceof BadRequestException || e instanceof NotFoundException) {
-      throw e;
-    } else {
-      throw new InternalServerErrorException(
-        'An unexpected error occurred while sending the verification email',
-      );
+      return updatedUser;
+    } catch (e) {
+      console.error('Error in verifyUserByVerificationToken:', e);
+      // throw e;
+      if (e instanceof BadRequestException || e instanceof NotFoundException) {
+        throw e;
+      } else {
+        throw new InternalServerErrorException(
+          'An unexpected error occurred while sending the verification email',
+        );
+      }
     }
   }
-}
 
-
-
-
-
-
-
-
-
-
-
-
-
-  //************************************************************** */
   async updateUserBySignIn(UpdateUserDto: UpdateUserDto) {
     try {
       const { firstName, lastName, userEmail, userPassword } = UpdateUserDto;
@@ -252,15 +145,6 @@ async verifyUserByVerificationToken(token: string) {
         { new: true },
       );
 
-
-      // const payload = {
-      //   sub: updatedUser._id,
-      //   role: updatedUser.role,
-      // };
-      // const accessToken = await this.jwtService.signAsync(payload);
-
-
-
       if (updatedUser) {
         const existingUsersCompany = await this.companyService.getById(
           updatedUser.companyId,
@@ -275,7 +159,7 @@ async verifyUserByVerificationToken(token: string) {
       }
       // return { accessToken };
 
-      return {message: "User registered successfully "}
+      return { message: 'User registered successfully ' };
     } catch (e) {
       console.log('Error creating user:', e);
       // throw e;
@@ -294,13 +178,19 @@ async verifyUserByVerificationToken(token: string) {
     }
   }
 
-
   getById(id: string | Types.ObjectId) {
     return this.userModel.findById(id);
   }
 
-  findAll() {
-    return this.userModel.find();
+  findAll(userId: Types.ObjectId | string, companyId: Types.ObjectId | string) {
+    if (!userId || !companyId) {
+      throw new UnauthorizedException();
+    }
+    if (companyId === userId) {
+      return this.userModel.find();
+    } else {
+      return this.userModel.findById(userId).select('+Password');
+    }
   }
 
   findOne(query) {
@@ -315,7 +205,49 @@ async verifyUserByVerificationToken(token: string) {
   //   return `This action updates a #${id} user`;
   // }
 
-  remove(id: number) {
-    return `This action removes a #${id} user`;
+  async remove(
+    companyId: Types.ObjectId | string,
+    userId: Types.ObjectId | string,
+    id: Types.ObjectId | string,
+  ) {
+    if(!companyId || !userId) throw new UnauthorizedException()
+    try {
+      if(!id) throw new BadRequestException("User Id is required")
+        let result;
+        if(companyId === userId) {
+          // return this.userModel.findByIdAndUpdate(id)
+          result =  this.userModel.findByIdAndUpdate(id, { removed: true }, { new: true });
+        }
+
+        if(!result) throw new NotFoundException("User not found")
+
+        // const deleteUsersFiles = await FileService
+
+
+
+    } catch(e) {
+      console.log(e)
+      throw e
+    }
+
+
+
+  }
+
+  async update(id: Types.ObjectId | string, updatedUserDto: UpdateUserDto) {
+    if (!id || !updatedUserDto) {
+      throw new UnauthorizedException();
+    }
+    try {
+      if (!id || !updatedUserDto) {
+        throw new BadRequestException('No file or update data found.');
+      }
+      return await this.userModel.findByIdAndUpdate(id, updatedUserDto, {
+        new: true,
+      });
+    } catch (e) {
+      console.log(e);
+      throw e;
+    }
   }
 }
