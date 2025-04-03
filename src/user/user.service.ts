@@ -9,6 +9,7 @@ import {
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
+import { FileService } from 'src/file/file.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { InjectModel } from '@nestjs/mongoose';
@@ -20,13 +21,12 @@ import { EmailSenderService } from 'src/email-sender/email-sender.service';
 import { Company } from 'src/company/decorators/company.decorator';
 import { CompanyService } from 'src/company/company.service';
 import { JwtService } from '@nestjs/jwt';
-import { FileService } from 'src/file/file.service';
 
 @Injectable()
 export class UserService {
   constructor(
     @InjectModel(User.name) private userModel: Model<User>,
-    // @Inject(forwardRef(() => FileService)) private fileService: FileService, 
+    @Inject(forwardRef(() => FileService)) private fileService: FileService,
     // private fileService: FileService,
     private emailSender: EmailSenderService,
     private companyService: CompanyService,
@@ -182,14 +182,18 @@ export class UserService {
     return this.userModel.findById(id);
   }
 
-  findAll(userId: Types.ObjectId | string, companyId: Types.ObjectId | string) {
+  async findAll(
+    userId: Types.ObjectId | string,
+    companyId: Types.ObjectId | string,
+  ) {
     if (!userId || !companyId) {
       throw new UnauthorizedException();
     }
-    if (companyId === userId) {
-      return this.userModel.find();
+    if (companyId.toString() === userId.toString()) {
+      return await this.userModel.find();
     } else {
-      return this.userModel.findById(userId).select('+Password');
+      const user = await this.userModel.findById(userId).select('+Password');
+      return [user];
     }
   }
 
@@ -205,33 +209,97 @@ export class UserService {
   //   return `This action updates a #${id} user`;
   // }
 
+  //before permissions delete
+  // async remove(
+  //   companyId: Types.ObjectId | string,
+  //   userId: Types.ObjectId | string,
+  //   id: Types.ObjectId | string,
+  // ) {
+  //   if (!companyId || !userId) throw new UnauthorizedException();
+  //   try {
+  //     if (companyId.toString() !== userId.toString()) {
+  //       throw new UnauthorizedException(
+  //         'You are not authorized to delete this user',
+  //       );
+  //     }
+  //     const userToDelete = await this.userModel.findById(id);
+  //     if (!userToDelete) throw new NotFoundException('User not found');
+
+  //     const deleteUsersFiles = await this.fileService.removeManyFiles(
+  //       companyId,
+  //       userId,
+  //       id,
+  //     );
+  //     const deletedUser = await this.userModel.findByIdAndDelete(id);
+  //     if (!deletedUser) throw new NotFoundException('User not found');
+
+  //     return {
+  //       message: 'User and associated files deleted successfully',
+  //     };
+  //   } catch (e) {
+  //     console.log(e);
+  //     throw e;
+  //   }
+  // }
+
   async remove(
     companyId: Types.ObjectId | string,
     userId: Types.ObjectId | string,
     id: Types.ObjectId | string,
   ) {
-    if(!companyId || !userId) throw new UnauthorizedException()
+    if (!companyId || !userId) throw new UnauthorizedException();
+
     try {
-      if(!id) throw new BadRequestException("User Id is required")
-        let result;
-        if(companyId === userId) {
-          // return this.userModel.findByIdAndUpdate(id)
-          result =  this.userModel.findByIdAndUpdate(id, { removed: true }, { new: true });
+      if (companyId.toString() !== userId.toString()) {
+        throw new UnauthorizedException(
+          'You are not authorized to delete this user',
+        );
+      }
+
+      const userToDelete = await this.userModel.findById(id);
+      if (!userToDelete) throw new NotFoundException('User not found');
+      const filteredFiles = await this.fileService.findAll(userId, companyId);
+      if (!filteredFiles || filteredFiles.length === 0) {
+        console.log('No files found for this user to delete.');
+      }
+
+      for (const file of filteredFiles) {
+        const parsedPermissions = file.userPermissions
+          .map((permission) => {
+            try {
+              return typeof permission === 'string'
+                ? JSON.parse(permission)
+                : permission;
+            } catch (error) {
+              console.error('Error parsing permission:', error);
+              return [];
+            }
+          })
+          .flat();
+        const permissionIndex = parsedPermissions.findIndex(
+          (permission) => permission.permissionById === id.toString(),
+        );
+        if (permissionIndex !== -1) {
+          parsedPermissions.splice(permissionIndex, 1);
+
+          await this.fileService.updateFilePermissions(
+            file._id,
+            parsedPermissions,
+          );
         }
 
-        if(!result) throw new NotFoundException("User not found")
+      }
 
-        // const deleteUsersFiles = await FileService
+      await this.fileService.removeManyFiles(companyId, userId, id);
 
+      const deletedUser = await this.userModel.findByIdAndDelete(id);
+      if (!deletedUser) throw new NotFoundException('User not found');
 
-
-    } catch(e) {
-      console.log(e)
-      throw e
+      return deletedUser;
+    } catch (e) {
+      console.log(e);
+      throw e;
     }
-
-
-
   }
 
   async update(id: Types.ObjectId | string, updatedUserDto: UpdateUserDto) {

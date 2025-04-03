@@ -69,7 +69,7 @@ export class User {
   
   @Prop({
     type: [{ type: mongoose.Schema.Types.ObjectId }],
-    ref: 'file',
+    ref: 'File',
     default: [],
   })
   uploadedFiles: mongoose.Types.ObjectId[];

@@ -10,8 +10,6 @@ import { CompanyModule } from 'src/company/company.module';
 import { AuthGuard } from 'src/guard/auth.guard';
 import { FileModule } from 'src/file/file.module';
 
-import { FileService } from 'src/file/file.service';
-
 @Module({
   imports: [
     ConfigModule.forRoot(),
@@ -23,13 +21,7 @@ import { FileService } from 'src/file/file.service';
     MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
     EmailSenderModule,
     CompanyModule,
-
-
-
-
-    
-
-    // forwardRef(() => FileModule),
+    forwardRef(() => FileModule),
   ],
   controllers: [UserController],
   providers: [UserService, AuthGuard],

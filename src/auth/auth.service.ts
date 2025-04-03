@@ -30,6 +30,7 @@ interface UserPayload {
 
 type PayloadType = CompanyPayload | UserPayload;
 
+
 @Injectable()
 export class AuthService {
   constructor(
@@ -265,13 +266,16 @@ export class AuthService {
 
   //START - OK, BEFORE USER
   async getCurrentUser(userId: string, companyId: string, role: string) {
-
     if (!companyId || !userId) {
       throw new UnauthorizedException();
     }
     try {
       const existingUser = await this.userService.getById(userId);
-      const existingCompany = await this.companyService.getById(companyId);
+      // const existingCompany = (await this.companyService.getById(companyId)).populated("uploadedFile");
+      const existingCompany = await this.companyService.getById(companyId)
+      .populate('uploadedFiles')
+      ;
+      console.log(existingCompany, "existingCompany")
 
       return {
         company: existingCompany,
@@ -282,55 +286,8 @@ export class AuthService {
     }
   }
 
-  // async getCurrentUser(id: string, type: 'company' | 'user') {
-  //   try {
-  //     if (type === 'company') {
-  //       const existingCompany = await this.companyService.getById(id);
-  //       return existingCompany;
-  //     } else if (type === 'user') {
-  //       const existingUser = await this.userService.getById(id);
-  //       return existingUser;
-  //     }
-  //     throw new Error("Invalid type for current user request");
-  //   } catch (error) {
-  //     console.log(error);
-  //     throw error; // Rethrow the error to handle it properly in the controller
-  //   }
-  // }
+  
 
-  // async getCurrentUser(
-  //   id: string,
-  //   type: 'company' | 'user',
-  //   companyId?: string,
-  // ) {
-  //   try {
-  //     if (type === 'company') {
-  //       const existingCompany = await this.companyService
-  //         .getById(id)
-  //         .select('-password');
-  //       return existingCompany.toObject();
-  //     } else if (type === 'user') {
-  //       const existingUser = await this.userService
-  //         .getById(id)
-  //         .select('-password');
-  //       const existingCompany = await this.companyService
-  //         .getById(existingUser.companyId)
-  //         .select('-password');
-
-  //       const userData = existingUser.toObject();
-  //       const companyData = existingCompany.toObject();
-
-  //       return {
-  //         user: userData,
-  //         company: companyData,
-  //       };
-  //     }
-  //     throw new Error('Invalid type for current user request');
-  //   } catch (error) {
-  //     console.log(error);
-  //     throw error;
-  //   }
-  // }
 
   async changePassword(
     customId: string | Types.ObjectId,
@@ -385,8 +342,6 @@ export class AuthService {
   findOne(id: number) {
     return `This action returns a #${id} auth`;
   }
-
-
 
   // async findCompanyById(id: Types.ObjectId | string) {
   //   try {
