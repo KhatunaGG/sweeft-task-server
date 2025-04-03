@@ -35,21 +35,9 @@ export class Company {
   @Prop({ type: String, enum: Subscription, default: Subscription.FREE })
   subscriptionPlan: string;
 
-  // @Prop({ type: [mongoose.Schema.Types.ObjectId], ref: 'file', default: [] })
-  // uploadedFiles: mongoose.Schema.Types.ObjectId[];
-
-  // @Prop({ type: [mongoose.Schema.Types.ObjectId], ref: 'user', default: [] })
-  // user: mongoose.Schema.Types.ObjectId[];
-
-
-
-
-
-
-
   @Prop({
     type: [{ type: mongoose.Schema.Types.ObjectId }],
-    ref: 'file',
+    ref: 'File',
     default: [],
   })
   uploadedFiles: mongoose.Types.ObjectId[];

@@ -85,14 +85,12 @@ export class AuthController {
   // }
 
 
+
   @Get('current-user')
   @UseGuards(AuthGuard)
   async getCurrentUser(@Req() req) {
     return await this.authService.getCurrentUser(req.userId, req.companyId, req.role)
   }
-
-
-
 
 
   @Patch('/update-company')

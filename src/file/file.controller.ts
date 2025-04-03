@@ -73,8 +73,8 @@ export class FileController {
 
   @Get()
   @UseGuards(AuthGuard)
-  findAll(@Req() req, @Company() customId: Types.ObjectId | string) {
-    return this.fileService.findAll(req.userId, req.companyId, customId);
+  findAll(@Req() req) {
+    return this.fileService.findAll(req.userId, req.companyId,);
   }
 
   @Post()
