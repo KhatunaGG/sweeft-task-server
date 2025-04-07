@@ -21,6 +21,7 @@ import { EmailSenderService } from 'src/email-sender/email-sender.service';
 import { Company } from 'src/company/decorators/company.decorator';
 import { CompanyService } from 'src/company/company.service';
 import { JwtService } from '@nestjs/jwt';
+import { QueryParamsDto } from 'src/file/dto/query-params.dto';
 
 @Injectable()
 export class UserService {
@@ -182,21 +183,43 @@ export class UserService {
     return this.userModel.findById(id);
   }
 
+  // async findAll(
+  //   userId: Types.ObjectId | string,
+  //   companyId: Types.ObjectId | string,
+  // ) {
+  //   if (!userId || !companyId) {
+  //     throw new UnauthorizedException();
+  //   }
+  //   if (companyId.toString() === userId.toString()) {
+  //     return await this.userModel.find();
+  //   } else {
+  //     const user = await this.userModel.findById(userId).select('+Password');
+  //     return [user];
+  //   }
+  // }
+
   async findAll(
     userId: Types.ObjectId | string,
     companyId: Types.ObjectId | string,
+    queryParams: QueryParamsDto,
   ) {
     if (!userId || !companyId) {
       throw new UnauthorizedException();
     }
+    let { page, take } = queryParams;
+    take = take > 100 ? 100 : take;
     if (companyId.toString() === userId.toString()) {
-      return await this.userModel.find();
+      return await this.userModel
+        .find()
+        .skip((page - 1) * take)
+        .limit(take);
     } else {
       const user = await this.userModel.findById(userId).select('+Password');
       return [user];
     }
   }
 
+  
   findOne(query) {
     return this.userModel.findOne(query);
   }
@@ -258,7 +281,12 @@ export class UserService {
 
       const userToDelete = await this.userModel.findById(id);
       if (!userToDelete) throw new NotFoundException('User not found');
-      const filteredFiles = await this.fileService.findAll(userId, companyId);
+      // const filteredFiles = await this.fileService.findAll(userId, companyId);
+      const filteredFiles = await this.fileService.findAll(
+        userId,
+        companyId,
+        id,
+      );
       if (!filteredFiles || filteredFiles.length === 0) {
         console.log('No files found for this user to delete.');
       }
@@ -287,7 +315,6 @@ export class UserService {
             parsedPermissions,
           );
         }
-
       }
 
       await this.fileService.removeManyFiles(companyId, userId, id);
