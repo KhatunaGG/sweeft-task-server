@@ -48,6 +48,25 @@ export class Company {
     default: [],
   })
   user: mongoose.Types.ObjectId[];
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  @Prop({ default: Date.now })
+  subscriptionUpdateDate: Date;
 }
 
 export const CompanySchema = SchemaFactory.createForClass(Company);

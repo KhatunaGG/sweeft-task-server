@@ -10,14 +10,17 @@ import {
   UseInterceptors,
   UploadedFile,
   Req,
+  Res,
+  Query,
 } from '@nestjs/common';
 import { FileService } from './file.service';
 import { CreateFileDto } from './dto/create-file.dto';
 import { UpdateFileDto } from './dto/update-file.dto';
 import { AuthGuard } from 'src/guard/auth.guard';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { Company } from 'src/company/decorators/company.decorator';
 import { Types } from 'mongoose';
+import { QueryParamsDto } from './dto/query-params.dto';
+
 
 @Controller('file')
 export class FileController {
@@ -30,11 +33,16 @@ export class FileController {
     @UploadedFile() file: Express.Multer.File,
     @Req() req,
     @Body()
-    body: { companyId: string; userPermissions: string[]; fileName: string },
+    body: {
+      companyId: string;
+      userPermissions: string[];
+      fileName: string;
+      fileExtension: string;
+    },
   ) {
     const path = Math.random().toString().slice(2);
     const filePath = `sweeft-task/${path}`;
-    const { companyId, userPermissions, fileName } = body;
+    const { companyId, userPermissions, fileName, fileExtension } = body;
     const fileOwnerId = req.userId;
     const fileOwnerCompanyId = req.companyId;
     return await this.fileService.uploadFile(
@@ -44,6 +52,7 @@ export class FileController {
       fileOwnerCompanyId,
       userPermissions,
       fileName,
+      fileExtension,
     );
   }
 
@@ -63,18 +72,20 @@ export class FileController {
     );
   }
 
-  // @Patch('update-permissions')
+  // @Get()
   // @UseGuards(AuthGuard)
-  // async userPermissions(@Req() req, @Body() body: {fileId: string, userPermissions: [String]} ) {
-  //   await this.fileService.updateUserPermissions(req.companyId, body.fileId, body.userPermissions)
-
-  //   return "ok"
+  // findAll(@Req() req) {
+  //   return this.fileService.findAll(req.userId, req.companyId);
   // }
 
-  @Get()
+  @Get('all/')
   @UseGuards(AuthGuard)
-  findAll(@Req() req) {
-    return this.fileService.findAll(req.userId, req.companyId,);
+  getAllByPage(@Req() req, @Query() queryParams: QueryParamsDto) {
+    return this.fileService.getAllByPage(
+      req.userId,
+      req.companyId,
+      queryParams,
+    );
   }
 
   @Post()
@@ -87,14 +98,51 @@ export class FileController {
     return this.fileService.findOne(id);
   }
 
-  // @Patch(':id')
-  // update(@Param('id') id: string, @Body() updateFileDto: UpdateFileDto) {
-  //   return this.fileService.update(+id, updateFileDto);
-  // }
-
   @Delete(':id')
   @UseGuards(AuthGuard)
   remove(@Req() req, @Param('id') id: Types.ObjectId) {
     return this.fileService.remove(req.companyId, req.userId, id);
+  }
+
+  @Get('/download-file/:id')
+  @UseGuards(AuthGuard)
+  async downloadFile(@Req() req, @Param() param, @Res() res) {
+    try {
+      const { id } = param;
+      const fileData = await this.fileService.downloadFile(
+        req.userId,
+        req.companyId,
+        id,
+      );
+      res.setHeader(
+        'Content-Type',
+        fileData.contentType || 'application/octet-stream',
+      );
+      res.setHeader('Content-Disposition', fileData.contentDisposition);
+      res.setHeader('X-File-Name', fileData.fileName);
+      res.setHeader('X-File-Extension', fileData.fileExtension);
+
+      return res.send(fileData.buffer);
+    } catch (error) {
+      console.error('Download file error:', error);
+      throw error;
+    }
+  }
+
+  @Get('/metadata/:id')
+  @UseGuards(AuthGuard)
+  async getFileMetadata(@Req() req, @Param() param) {
+    try {
+      const { id } = param;
+      const fileMetadata = await this.fileService.getFileMetadata(
+        req.userId,
+        req.companyId,
+        id,
+      );
+      return fileMetadata;
+    } catch (error) {
+      console.error('Get file metadata error:', error);
+      throw error;
+    }
   }
 }

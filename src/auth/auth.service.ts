@@ -30,7 +30,6 @@ interface UserPayload {
 
 type PayloadType = CompanyPayload | UserPayload;
 
-
 @Injectable()
 export class AuthService {
   constructor(
@@ -237,6 +236,7 @@ export class AuthService {
   //     console.log(error);
   //   }
   // }
+  
 
   async updateCompany(
     companyId: string,
@@ -272,10 +272,10 @@ export class AuthService {
     try {
       const existingUser = await this.userService.getById(userId);
       // const existingCompany = (await this.companyService.getById(companyId)).populated("uploadedFile");
-      const existingCompany = await this.companyService.getById(companyId)
-      .populate('uploadedFiles')
-      ;
-      console.log(existingCompany, "existingCompany")
+      const existingCompany = await this.companyService
+        .getById(companyId)
+        .populate('uploadedFiles');
+      // console.log(existingCompany, "existingCompany")
 
       return {
         company: existingCompany,
@@ -285,9 +285,6 @@ export class AuthService {
       console.log(error);
     }
   }
-
-  
-
 
   async changePassword(
     customId: string | Types.ObjectId,
@@ -330,11 +327,6 @@ export class AuthService {
     }
   }
 
-  //*************************** */
-  // create(createAuthDto: CreateAuthDto) {
-  //   return 'This action adds a new auth';
-  // }
-
   findAll() {
     return `This action returns all auth`;
   }
@@ -342,16 +334,6 @@ export class AuthService {
   findOne(id: number) {
     return `This action returns a #${id} auth`;
   }
-
-  // async findCompanyById(id: Types.ObjectId | string) {
-  //   try {
-  //     await this.companyService.getById(id)
-
-  //   } catch(e) {
-  //     console.log(e)
-  //     throw e
-  //   }
-  // }
 
   remove(id: number) {
     return `This action removes a #${id} auth`;
