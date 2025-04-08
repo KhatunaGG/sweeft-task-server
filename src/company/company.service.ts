@@ -61,13 +61,8 @@ export class CompanyService {
     }
   }
 
-  //************************** */
-
   create(@Body() createCompanyDto: CreateCompanyDto) {
     return this.companyModel.create(createCompanyDto);
   }
 
-  // getById(id: string) {
-  //   return this.companyModel.findById(id);
-  // }
 }

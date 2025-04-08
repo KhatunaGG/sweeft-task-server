@@ -28,5 +28,10 @@ export class File {
 
   // @Prop({ type: String, required: true })
   contentType: { type: String; default: 'application/octet-stream' };
+
+
+
+
+  additionalCharge?: number;
 }
 export const FileSchema = SchemaFactory.createForClass(File);
