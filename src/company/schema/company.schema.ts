@@ -65,8 +65,14 @@ export class Company {
 
 
   
-  @Prop({ default: Date.now })
-  subscriptionUpdateDate: Date;
+  // @Prop({ default: Date.now })
+  // subscriptionUpdateDate: Date;
+
+  // @Prop({default: 0})
+  // premiumCharge: number;
+
+  // @Prop({default: 0})
+  // extraUserCharge: number;
 }
 
 export const CompanySchema = SchemaFactory.createForClass(Company);

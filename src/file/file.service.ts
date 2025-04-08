@@ -18,17 +18,21 @@ import { File } from './schema/file.schema';
 import { UpdateCompanyDto } from 'src/company/dto/update.company.dto';
 import { UpdateUserDto } from 'src/user/dto/update-user.dto';
 import { QueryParamsDto } from './dto/query-params.dto';
+import { Subscription } from 'src/enums/subscription.enum';
+import { AuthService } from 'src/auth/auth.service';
 
 @Injectable()
 export class FileService {
   constructor(
     @InjectModel(File.name) private readonly fileModel: Model<File>,
     @Inject(forwardRef(() => UserService)) private userService: UserService,
+    @Inject(forwardRef(() => AuthService)) private authService: AuthService,
     // private userService: UserService,
     private aswS3Service: AwsS3Service,
     private companyService: CompanyService,
   ) {}
 
+  //before additionalCharge:
   async uploadFile(
     filePath: string,
     buffer: Buffer,
@@ -82,67 +86,76 @@ export class FileService {
     }
   }
 
-  // async findAll(
-  //   userId: Types.ObjectId | string,
-  //   companyId: Types.ObjectId | string,
+  // async uploadFile(
+  //   filePath: string,
+  //   buffer: Buffer,
+  //   fileOwnerId: Types.ObjectId | string,
+  //   fileOwnerCompanyId: Types.ObjectId | string,
+  //   userPermissions: string[],
+  //   fileName: string,
+  //   fileExtension: string,
   // ) {
-  //   if (!userId || !companyId) {
-  //     throw new UnauthorizedException();
-  //   }
-
-  //   let allFiles;
   //   try {
-  //     if (companyId.toString() === userId.toString()) {
-  //       allFiles = await this.fileModel
-  //         .find({ fileOwnerCompanyId: companyId })
-  //         .exec();
-
-  //       if (allFiles.length === 0) {
-  //         return { message: 'No files found for this company.' };
-  //       }
-  //     } else {
-  //       const files = await this.fileModel
-  //         .find({ fileOwnerCompanyId: companyId })
-  //         .exec();
-  //       const parsedFiles = files.map((file) => ({
-  //         ...file.toObject(),
-  //         parsedPermissions:
-  //           file.userPermissions.length > 0
-  //             ? file.userPermissions
-  //                 .map((permission) => {
-  //                   try {
-  //                     return typeof permission === 'string'
-  //                       ? JSON.parse(permission)
-  //                       : permission;
-  //                   } catch (error) {
-  //                     console.error('Error parsing permission:', error);
-  //                     return [];
-  //                   }
-  //                 })
-  //                 .flat()
-  //             : [],
-  //       }));
-
-  //       const filesForAll = parsedFiles.filter(
-  //         (file) => file.parsedPermissions.length === 0,
-  //       );
-  //       const filesForUsers = parsedFiles.filter((file) =>
-  //         file.parsedPermissions.some(
-  //           (permission) => permission.permissionById === userId.toString(),
-  //         ),
-  //       );
-
-  //       const uniqueFiles = new Map();
-  //       [...filesForAll, ...filesForUsers].forEach((file) => {
-  //         uniqueFiles.set(file._id.toString(), file);
-  //       });
-
-  //       allFiles = Array.from(uniqueFiles.values());
+  //     if (!fileOwnerCompanyId) {
+  //       throw new UnauthorizedException('User ID or Company ID is required.');
   //     }
-  //     return allFiles;
+  //     const company = await this.companyService.getById(fileOwnerCompanyId);
+  //     if (!company) throw new UnauthorizedException('Company not found');
+  //     const subscriptionPlan = company.subscriptionPlan;
+  //     const currentDate = new Date()
+  //     const startOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+  //     const filesThisMonth = await this.fileModel.countDocuments({
+  //       fileOwnerCompanyId,
+  //       createdAt: { $gte: startOfMonth },
+  //     });
+
+  //     let additionalCharge = 0;
+  //     if (subscriptionPlan === Subscription.FREE && filesThisMonth >= 10) {
+  //       throw new BadRequestException('You have reached the upload limit for the free plan. Upgrade your plan to upload more files.');
+  //     }
+  //     if (subscriptionPlan === Subscription.PREMIUM && filesThisMonth > 20) {
+  //       additionalCharge = (filesThisMonth - 20) * 0.50;
+  //     }
+
+  //     const filePathFromAws = await this.aswS3Service.uploadFile(
+  //       filePath,
+  //       buffer,
+  //     );
+  //     if (!filePathFromAws) {
+  //       throw new NotFoundException('File not found');
+  //     }
+
+  //     const file = new this.fileModel({
+  //       fileOwnerId,
+  //       fileOwnerCompanyId,
+  //       filePath: filePathFromAws,
+  //       userPermissions,
+  //       fileName,
+  //       fileExtension,
+  //       additionalCharge: additionalCharge ? additionalCharge : 0
+  //     });
+  //     const newFile = await this.fileModel.create(file);
+  //     if (newFile) {
+  //       const existingCompany =
+  //         await this.companyService.getById(fileOwnerCompanyId);
+  //       if (!existingCompany) return;
+
+  //       existingCompany.uploadedFiles.push(
+  //         new mongoose.Types.ObjectId(file._id),
+  //       );
+  //       await existingCompany.save();
+  //       const existingUser = await this.userService.getById(fileOwnerId);
+  //       if (!existingUser) return;
+  //       existingUser.uploadedFiles.push(new mongoose.Types.ObjectId(file._id));
+  //       await existingUser.save();
+  //     }
+  //     return {
+  //       uploadedFile: newFile,
+  //       filePathFromAws,
+  //     };
   //   } catch (e) {
   //     console.log(e);
-  //     throw new UnauthorizedException('Error fetching files');
+  //     throw e;
   //   }
   // }
 
@@ -181,42 +194,179 @@ export class FileService {
     }
   }
 
-  async remove(companyId: string, userId: string, id: Types.ObjectId) {
+  // async remove(companyId: string, userId: string, id: Types.ObjectId) {
+  //   try {
+  //     if (!companyId || !userId) throw new UnauthorizedException();
+  //     if (!id) throw new BadGatewayException('File ID is required');
+
+  //     const deletedFile = await this.fileModel.findByIdAndDelete(id);
+  //     if (!deletedFile) throw new NotFoundException('File not found');
+
+  //     const awsFileId = deletedFile.filePath.split('/')[1];
+  //     const deletedFilePath =
+  //       await this.aswS3Service.deleteFileByFileId(awsFileId);
+
+  //     const company = await this.companyService.findById(companyId);
+  //     if (!company) throw new NotFoundException('Company not found');
+  //     const companyFileIndex  = company.uploadedFiles.indexOf(id);
+  //     console.log(companyFileIndex, "companyFileIndex")
+  //     if (companyFileIndex  === -1) {
+  //       throw new NotFoundException(
+  //         'File ID not found in company uploaded files',
+  //       );
+  //     }
+  //     company.uploadedFiles.splice(companyFileIndex, 1);
+  //     const user = await this.userService.getById(userId);
+  //     if (!user) {
+  //       return;
+  //     }
+  //     const userFileIndex  = user.uploadedFiles.indexOf(id);
+  //     if (userFileIndex  === -1) {
+  //       throw new NotFoundException(
+  //         'File ID not found in company uploaded files',
+  //       );
+  //     }
+  //     user.uploadedFiles.splice(userFileIndex, 1);
+
+  //     await this.companyService.updateCompany(companyId, { uploadedFiles: company.uploadedFiles });
+
+  //     console.log(company, "company after delete file")
+
+  //  if (user) {
+  //     await this.userService.update(userId, { uploadedFiles: user.uploadedFiles });
+  //   }
+
+  //     await company.save();
+  //     await user.save();
+  //     return 'File successfully removed from Company and Users';
+  //   } catch (e) {
+  //     console.log(e);
+  //     throw e;
+  //   }
+  // }
+
+  // async remove(companyId: string, userId: string, id: Types.ObjectId | string) {
+  //   try {
+  //     if (!companyId || !userId) throw new UnauthorizedException();
+  //     if (!id) throw new BadGatewayException('File ID is required');
+
+  //     // Properly convert the ID to ObjectId if needed
+  //     let fileId: Types.ObjectId;
+  //     if (typeof id === 'string') {
+  //       fileId = new Types.ObjectId(id);
+  //     } else {
+  //       fileId = id;
+  //     }
+
+  //     console.log('Attempting to delete file with ID:', fileId);
+
+  //     // Delete the file document
+  //     const deletedFile = await this.fileModel.findByIdAndDelete(fileId);
+  //     if (!deletedFile) throw new NotFoundException('File not found');
+
+  //     // Delete from AWS S3 if needed
+  //     const awsFileId = deletedFile.filePath.split('/')[1];
+  //     const deletedFilePath = await this.aswS3Service.deleteFileByFileId(awsFileId);
+
+  //     // Since we can't use $pull directly, first get the current arrays
+  //     const company = await this.companyService.findById(companyId);
+  //     if (!company) throw new NotFoundException('Company not found');
+
+  //     // Convert to strings and filter out the ID we want to remove
+  //     const fileIdStr = fileId.toString();
+  //     const updatedUploadedFiles = company.uploadedFiles.filter(
+  //       fileObjId => fileObjId.toString() !== fileIdStr
+  //     );
+
+  //     console.log('Original uploadedFiles length:', company.uploadedFiles.length);
+  //     console.log('Updated uploadedFiles length:', updatedUploadedFiles.length);
+
+  //     // Update company with the new array
+  //     const updatedCompany = await this.companyService.updateCompany(
+  //       companyId,
+  //       { uploadedFiles: updatedUploadedFiles }
+  //     );
+
+  //     // Update user if they exist
+  //     const user = await this.userService.getById(userId);
+  //     if (user) {
+  //       const userUploadedFiles = user.uploadedFiles.filter(
+  //         fileObjId => fileObjId.toString() !== fileIdStr
+  //       );
+
+  //       console.log('Original user uploadedFiles length:', user.uploadedFiles.length);
+  //       console.log('Updated user uploadedFiles length:', userUploadedFiles.length);
+
+  //       await this.userService.update(
+  //         userId,
+  //         { uploadedFiles: userUploadedFiles }
+  //       );
+  //     }
+
+  //     return 'File successfully removed from Company and Users';
+  //   } catch (e) {
+  //     console.log('Error in remove operation:', e);
+  //     throw e;
+  //   }
+  // }
+
+  async remove(
+    companyId: string,
+    userId: string | any,
+    id: Types.ObjectId | string,
+  ) {
     try {
-      if (!companyId || !userId) throw new UnauthorizedException();
+      if (!companyId || !userId)
+        throw new UnauthorizedException('Company or User not provided');
       if (!id) throw new BadGatewayException('File ID is required');
 
-      const deletedFile = await this.fileModel.findByIdAndDelete(id);
+      let fileId: Types.ObjectId;
+      if (typeof id === 'string') {
+        fileId = new Types.ObjectId(id);
+      } else {
+        fileId = id;
+      }
+
+      const deletedFile = await this.fileModel.findByIdAndDelete(fileId);
       if (!deletedFile) throw new NotFoundException('File not found');
 
       const awsFileId = deletedFile.filePath.split('/')[1];
-      console.log(awsFileId, 'awsFileId');
       const deletedFilePath =
         await this.aswS3Service.deleteFileByFileId(awsFileId);
 
       const company = await this.companyService.findById(companyId);
       if (!company) throw new NotFoundException('Company not found');
-      const index = company.uploadedFiles.indexOf(id);
-      if (index === -1) {
-        throw new NotFoundException(
-          'File ID not found in company uploaded files',
-        );
-      }
-      company.uploadedFiles.splice(index, 1);
 
-      const user = await this.userService.getById(userId);
+      const fileIdStr = fileId.toString();
+      const companyFileIndex = company.uploadedFiles.findIndex(
+        (fileObjId) => fileObjId.toString() === fileIdStr,
+      );
+      if (companyFileIndex !== -1) {
+        company.uploadedFiles.splice(companyFileIndex, 1);
+        await this.companyService.updateCompany(companyId, {
+          uploadedFiles: company.uploadedFiles,
+        });
+      } else {
+        console.log('File not found in company uploadedFiles');
+      }
+      if (userId && typeof userId !== 'string') {
+        userId = userId.toString();
+      }
+      const user = await this.userService.getById(deletedFile.fileOwnerId);
       if (!user) {
-        return;
-      }
-      const usersFileIndex = company.uploadedFiles.indexOf(id);
-      if (index === -1) {
-        throw new NotFoundException(
-          'File ID not found in company uploaded files',
+        console.log('User not found with ID');
+      } else {
+        const userFileIndex = user.uploadedFiles.findIndex(
+          (fileObjId) => fileObjId.toString() === fileIdStr,
         );
+        if (userFileIndex !== -1) {
+          user.uploadedFiles.splice(userFileIndex, 1);
+          await user.save();
+        } else {
+          console.log('File not found in user uploadedFiles');
+        }
       }
-      user.uploadedFiles.splice(usersFileIndex, 1);
-      await company.save();
-      await user.save();
+
       return 'File successfully removed from Company and Users';
     } catch (e) {
       console.log(e);
@@ -430,6 +580,19 @@ export class FileService {
     return mimeTypes[ext] || 'application/octet-stream';
   }
 
+  async getUploadedFilesByCompany(
+    companyId: Types.ObjectId | string,
+    subscriptionUpdateDate: Date,
+  ) {
+    const startOfMonth = new Date(subscriptionUpdateDate);
+    const endOfMonth = new Date(subscriptionUpdateDate);
+    endOfMonth.setMonth(endOfMonth.getMonth() + 1);
+    return await this.fileModel.find({
+      fileOwnerCompanyId: companyId,
+      createdAt: { $gte: startOfMonth, $lt: endOfMonth },
+    });
+  }
+
   async getAllByPage(
     userId: Types.ObjectId | string,
     companyId: Types.ObjectId | string,
@@ -508,5 +671,9 @@ export class FileService {
       console.log(e);
       throw e;
     }
+  }
+
+  async findAllByCompany(companyId: string | Types.ObjectId) {
+    return this.fileModel.find({ fileOwnerCompanyId: companyId.toString() });
   }
 }

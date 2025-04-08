@@ -14,6 +14,8 @@ import { UpdateCompanyDto } from 'src/company/dto/update.company.dto';
 import { Types } from 'mongoose';
 import { UserService } from 'src/user/user.service';
 import { Role } from 'src/enums/roles.enum';
+import { Subscription } from 'src/enums/subscription.enum';
+import { FileService } from 'src/file/file.service';
 
 interface CompanyPayload {
   sub: string;
@@ -37,6 +39,7 @@ export class AuthService {
     private jwtService: JwtService,
     private emailSender: EmailSenderService,
     private userService: UserService,
+    private fileService: FileService,
   ) {}
 
   getAllCompanies() {
@@ -236,7 +239,36 @@ export class AuthService {
   //     console.log(error);
   //   }
   // }
-  
+
+  //before extraUserCharge;
+  // async updateCompany(
+  //   companyId: string,
+  //   customId: string,
+  //   updateCompanyDto: UpdateCompanyDto,
+  // ) {
+  //   try {
+  //     if (!companyId) throw new UnauthorizedException('Company ID is required');
+  //     if (!updateCompanyDto)
+  //       throw new BadRequestException('Update data is required');
+  //     const company = await this.companyService.getById(companyId);
+  //     if (!company) throw new BadRequestException('Company not found');
+  //     const updatedCompanyDto = {
+  //       ...company.toObject(),
+  //       ...updateCompanyDto,
+  //     };
+  //     if (updateCompanyDto.subscriptionPlan && updateCompanyDto.subscriptionPlan !== company.subscriptionPlan) {
+  //       updatedCompanyDto.subscriptionUpdateDate = new Date();
+  //     }
+  //     const updatedCompany = await this.companyService.updateCompany(
+  //       companyId,
+  //       updatedCompanyDto,
+  //     );
+  //     return { message: 'The company data has been successfully updated.' };
+  //   } catch (e) {
+  //     console.log(e);
+  //     throw e;
+  //   }
+  // }
 
   async updateCompany(
     companyId: string,
@@ -253,6 +285,69 @@ export class AuthService {
         ...company.toObject(),
         ...updateCompanyDto,
       };
+      if (
+        updateCompanyDto.subscriptionPlan &&
+        updateCompanyDto.subscriptionPlan !== company.subscriptionPlan
+      ) {
+        updatedCompanyDto.subscriptionUpdateDate = new Date();
+
+        const { subscriptionPlan } = updatedCompanyDto;
+        let premiumCharge = 0;
+        let extraUserCharge = 0;
+        let extraFileCharge = 0;
+
+        const users = await this.userService.getAll(companyId);
+        const uploadedFilesThisMonth =
+          await this.fileService.getUploadedFilesByCompany(
+            companyId,
+            updatedCompanyDto.subscriptionUpdateDate,
+          );
+
+        const currentDate = new Date();
+        const subscriptionMonth =
+          updatedCompanyDto.subscriptionUpdateDate.getMonth();
+        const subscriptionYear =
+          updatedCompanyDto.subscriptionUpdateDate.getFullYear();
+
+        if (
+          currentDate.getMonth() === subscriptionMonth &&
+          currentDate.getFullYear() === subscriptionYear
+        ) {
+          if (subscriptionPlan === Subscription.FREE) {
+            if (users.length > 1) {
+              throw new BadRequestException(
+                'You have reached the limit for the free plan. Upgrade your plan to add more users.',
+              );
+            }
+            if (uploadedFilesThisMonth.length > 10) {
+              throw new BadRequestException(
+                'You have reached the upload limit for the free plan. Upgrade your plan to upload more files.',
+              );
+            }
+          }
+
+          if (subscriptionPlan === Subscription.BASIC) {
+            if (users.length > 5) {
+              extraUserCharge = (users.length - 5) * 5;
+            }
+            if (uploadedFilesThisMonth.length > 10) {
+              extraFileCharge = (uploadedFilesThisMonth.length - 10) * 0.5; 
+            }
+          }
+
+          if (subscriptionPlan === Subscription.PREMIUM) {
+            premiumCharge = 300;
+            if (uploadedFilesThisMonth.length > 20) {
+              extraFileCharge = (uploadedFilesThisMonth.length - 20) * 0.5;
+            }
+          }
+        }
+
+        updatedCompanyDto.premiumCharge = premiumCharge;
+        updatedCompanyDto.extraUserCharge = extraUserCharge;
+        updatedCompanyDto.extraFileCharge = extraFileCharge;
+      }
+
       const updatedCompany = await this.companyService.updateCompany(
         companyId,
         updatedCompanyDto,
