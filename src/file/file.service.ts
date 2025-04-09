@@ -676,4 +676,32 @@ export class FileService {
   async findAllByCompany(companyId: string | Types.ObjectId) {
     return this.fileModel.find({ fileOwnerCompanyId: companyId.toString() });
   }
+
+
+
+
+
+
+
+
+
+
+
+  async getUploadedFilesByCompanyInDateRange(
+    companyId: string,
+    startDate: Date,
+    endDate: Date
+  ) {
+    console.log("File query:", {
+      company: companyId,
+      createdAt: { $gte: startDate, $lte: endDate }
+    });
+    return this.fileModel.find({
+      company: companyId,
+      createdAt: {
+        $gte: startDate,
+        $lte: endDate
+      }
+    }).exec();
+  }
 }

@@ -50,29 +50,34 @@ export class Company {
   user: mongoose.Types.ObjectId[];
 
 
+ @Prop({ default: null })
+  subscriptionUpdateDate: Date;
 
+  @Prop({ default: 0 })
+  premiumCharge: number;
 
-
-
-
-
-
-
-
-
-
-
-
-
+  @Prop({ default: 0 })
+  extraUserCharge: number;
   
-  // @Prop({ default: Date.now })
-  // subscriptionUpdateDate: Date;
+  @Prop({ default: 0 })
+  extraFileCharge: number;
 
-  // @Prop({default: 0})
-  // premiumCharge: number;
 
-  // @Prop({default: 0})
-  // extraUserCharge: number;
+
+
+
+  @Prop({ type: Boolean, default: false })
+// hasChangedFromDefaultPlan: boolean;
+subscriptionFirstUpgrade: boolean
+
+
+
+
+
+@Prop()
+createdAt: Date; // Add createdAt here
+updatedAt: Date;
+
 }
 
 export const CompanySchema = SchemaFactory.createForClass(Company);
