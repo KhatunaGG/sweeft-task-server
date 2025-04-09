@@ -10,7 +10,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { Readable } from 'stream';
+
 
 @Injectable()
 export class AwsS3Service {

@@ -1,5 +1,5 @@
 import { Transform } from 'class-transformer';
-import { IsDate,  IsEmail, IsNotEmpty, IsString } from 'class-validator';
+import { IsBoolean, IsDate,  IsEmail, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
 export class CreateCompanyDto {
   @IsString()
@@ -24,7 +24,48 @@ export class CreateCompanyDto {
   industry: string;
 
 
+
+
+
+
+
+
+
+
+  
+
+
+  @IsBoolean()
+  @IsOptional()
   isVerified?: boolean;
+
+  @IsString()
+  @IsOptional()
   validationLink?: string;
+
+
+  @IsDate()
+  @IsOptional()
   validationLinkValidateDate?: Date;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  @IsDate()
+  @IsOptional()
+  subscriptionUpdateDate?: Date;
 }

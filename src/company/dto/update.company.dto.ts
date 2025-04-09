@@ -1,52 +1,78 @@
 import { PartialType } from '@nestjs/mapped-types';
 import { CreateCompanyDto } from './create.company.dto';
 import { Types } from 'mongoose';
-import { Prop } from '@nestjs/mongoose';
+import { IsArray, IsBoolean, IsDate, IsNumber, IsOptional, IsString } from 'class-validator';
+import { Type } from 'class-transformer';
 
 export class UpdateCompanyDto extends PartialType(CreateCompanyDto) {
   
+  @IsString()
+  @IsOptional()
   validationToken?: string;
+
+  @IsArray()
+  @IsOptional()
+  @Type(() => String)
   isVerified?: boolean;
+
+
+
+  @IsDate()
+  @IsOptional()
   validationLinkValidateDate?: Date;
-  uploadedFiles?: (string | Types.ObjectId)[];
 
 
+  @IsArray()
+  @IsOptional()
+  @Type(() => String)
+  uploadedFiles?: Types.ObjectId[];
 
-
-
-
-
-
-
-
-
-
-
-
-
-
+  // uploadedFiles?: (string | Types.ObjectId)[];
 
 
   
 
-
+  @IsString()
+  @IsOptional()
   subscriptionPlan?: string;
+
+  @IsDate()
+  @IsOptional()
   updatedCompanyDate?: Date;
-  // premiumCharge?: number;
-  // extraUserCharge?: number;
 
 
 
-  @Prop({ default: Date.now })
+
+  @IsDate()
+  @IsOptional()
   subscriptionUpdateDate?: Date;
 
-  @Prop({default: 0})
+  @IsNumber()
+  @IsOptional()
   premiumCharge?: number;
 
-  @Prop({default: 0})
+  @IsNumber()
+  @IsOptional()
   extraUserCharge?: number;
 
-  @Prop({default: 0})
+  @IsNumber()
+  @IsOptional()
   extraFileCharge?: number
  
+
+
+
+
+
+
+
+
+
+  @IsBoolean()
+  @IsOptional()
+  subscriptionFirstUpgrade?: boolean;
+
+
+
+
 }

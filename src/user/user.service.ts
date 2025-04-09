@@ -438,4 +438,31 @@ export class UserService {
       throw e;
     }
   }
+
+
+
+
+// In userService
+async getUsersAddedInDateRange(companyId: string, startDate: Date, endDate: Date) {
+  console.log("User query:", {
+    company: companyId,
+    createdAt: { $gte: startDate, $lte: endDate }
+  });
+  return this.userModel.find({
+    company: companyId,
+    createdAt: {
+      $gte: startDate,
+      $lte: endDate
+    }
+  }).exec();
+}
+
+
+
+
+
+
+
+
+
 }
