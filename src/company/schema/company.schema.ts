@@ -33,6 +33,7 @@ export class Company {
   role: string;
 
   @Prop({ type: String, enum: Subscription, default: Subscription.FREE })
+  // @Prop({ type: String, enum: Subscription, default: null })
   subscriptionPlan: string;
 
   @Prop({
