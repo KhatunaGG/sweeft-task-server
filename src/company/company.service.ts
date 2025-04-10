@@ -51,7 +51,6 @@ export class CompanyService {
   }
 
   async findById(id: Types.ObjectId | string) {
-    console.log(id, 'id from companyService');
     try {
       if (!id) throw new NotFoundException('Company not found');
       return await this.companyModel.findById(id);

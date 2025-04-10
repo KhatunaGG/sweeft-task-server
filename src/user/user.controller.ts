@@ -23,7 +23,7 @@ export class UserController {
   @Post()
   @UseGuards(AuthGuard)
   create(@Req() req, @Body() createUserDto: CreateUserDto) {
-    return this.userService.create(req.companyId, createUserDto);
+    return this.userService.create(req.companyId, createUserDto, req.userId);
   }
 
   @Get('/verify-user')

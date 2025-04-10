@@ -9,6 +9,7 @@ import { EmailSenderModule } from 'src/email-sender/email-sender.module';
 import { CompanyModule } from 'src/company/company.module';
 import { AuthGuard } from 'src/guard/auth.guard';
 import { FileModule } from 'src/file/file.module';
+import { AuthModule } from 'src/auth/auth.module';
 
 @Module({
   imports: [
@@ -22,6 +23,10 @@ import { FileModule } from 'src/file/file.module';
     EmailSenderModule,
     CompanyModule,
     forwardRef(() => FileModule),
+
+
+
+    forwardRef(() => AuthModule),
   ],
   controllers: [UserController],
   providers: [UserService, AuthGuard],

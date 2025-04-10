@@ -102,7 +102,7 @@ export class AuthController {
   ) {
     return this.authService.updateCompany(
       req.companyId,
-      customId,
+      // customId,
       updateCompanyDto,
     );
   }

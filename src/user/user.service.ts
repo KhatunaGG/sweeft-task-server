@@ -15,27 +15,28 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { InjectModel } from '@nestjs/mongoose';
 import { User } from './schema/user.schema';
 import mongoose, { Model, Types } from 'mongoose';
-// import { VerifyEmailDto } from './dto/verify.email.dto';
 import * as bcrypt from 'bcrypt';
 import { EmailSenderService } from 'src/email-sender/email-sender.service';
-import { Company } from 'src/company/decorators/company.decorator';
 import { CompanyService } from 'src/company/company.service';
 import { JwtService } from '@nestjs/jwt';
 import { QueryParamsDto } from 'src/file/dto/query-params.dto';
-import { Type } from '@aws-sdk/client-s3';
+import { Subscription } from 'src/enums/subscription.enum';
+import { AuthService } from 'src/auth/auth.service';
 
 @Injectable()
 export class UserService {
   constructor(
     @InjectModel(User.name) private userModel: Model<User>,
     @Inject(forwardRef(() => FileService)) private fileService: FileService,
+    @Inject(forwardRef(() => AuthService)) private authService:  AuthService,
     // private fileService: FileService,
     private emailSender: EmailSenderService,
     private companyService: CompanyService,
     private jwtService: JwtService,
   ) {}
 
-  //before extraUserCharge;
+
+
   // async create(companyId, createUserDto: CreateUserDto) {
   //   if (!companyId) {
   //     throw new ForbiddenException('Permission denied');
@@ -86,10 +87,17 @@ export class UserService {
   //   }
   // }
 
-  async create(companyId, createUserDto: CreateUserDto) {
+
+  async create(companyId, createUserDto: CreateUserDto, userId) {
     if (!companyId) {
       throw new ForbiddenException('Permission denied');
     }
+    if(companyId.toString() !== userId.toString()) {
+      throw new ForbiddenException('Permission denied');
+    }
+    console.log(userId, "userId")
+    console.log(companyId, "companyId")
+    
     try {
       const { userEmail } = createUserDto;
       if (!userEmail) {
@@ -98,6 +106,25 @@ export class UserService {
       const existingUser = await this.userModel.findOne({ userEmail });
       if (existingUser) {
         throw new BadRequestException('User already exists');
+      }
+      const company = await this.companyService.getById(companyId);
+      if (!company) {
+        throw new NotFoundException('Company not found');
+      }
+      const startDate = new Date(company.subscriptionUpdateDate);
+      const endDate = new Date();
+      const usersThisMonth = await this.getUsersAddedInDateRange(
+        companyId,
+        startDate,
+        endDate
+      );
+
+      if (company.subscriptionPlan === Subscription.FREE && usersThisMonth.length >= 1) {
+        throw new BadRequestException(
+          'Free tier allows only 1 user. Please upgrade your subscription to add more users.'
+        );
+      } else if (company.subscriptionPlan === Subscription.BASIC && usersThisMonth.length >= 5) {
+        console.log('Basic tier user limit reached. Extra charges will apply.');
       }
       const validationToken = crypto.randomUUID();
       const validationLinkValidateDate = new Date();
@@ -112,6 +139,7 @@ export class UserService {
         validationLinkValidateDate,
         isVerified: false,
       };
+      
       const createdUser = await this.userModel.create(newUser);
       await createdUser.save();
       await this.emailSender.sendValidationEmail(
@@ -119,13 +147,20 @@ export class UserService {
         'Dear Colleague',
         fullValidationLink,
       );
+      if (company.subscriptionPlan === Subscription.BASIC && usersThisMonth.length >= 3) {
+        await this.authService.checkSubscription(
+          companyId,
+          company.subscriptionPlan,
+          new Date(), 
+        );
+      }
+      
       return {
         message: 'User added successfully',
         status: 'success',
       };
     } catch (e) {
       console.log('Error creating user:', e);
-      // throw e;
       if (e instanceof BadRequestException || e instanceof NotFoundException) {
         throw e;
       } else {
@@ -135,6 +170,9 @@ export class UserService {
       }
     }
   }
+
+
+  
 
   async verifyUserByVerificationToken(token: string) {
     try {
@@ -164,7 +202,6 @@ export class UserService {
       return updatedUser;
     } catch (e) {
       console.error('Error in verifyUserByVerificationToken:', e);
-      // throw e;
       if (e instanceof BadRequestException || e instanceof NotFoundException) {
         throw e;
       } else {
@@ -215,8 +252,6 @@ export class UserService {
       return { message: 'User registered successfully ' };
     } catch (e) {
       console.log(e);
-      // throw e;
-
       if (
         e instanceof BadRequestException ||
         e instanceof NotFoundException ||
@@ -267,69 +302,6 @@ export class UserService {
   findUserByPassword(query: { userEmail: string }) {
     return this.userModel.findOne(query).select('+userPassword');
   }
-
-  // async remove(
-  //   companyId: Types.ObjectId | string,
-  //   userId: Types.ObjectId | string,
-  //   id: Types.ObjectId | string,
-  // ) {
-  //   if (!companyId || !userId) throw new UnauthorizedException();
-
-  //   try {
-  //     if (companyId.toString() !== userId.toString()) {
-  //       throw new UnauthorizedException(
-  //         'You are not authorized to delete this user',
-  //       );
-  //     }
-
-  //     const userToDelete = await this.userModel.findById(id);
-  //     if (!userToDelete) throw new NotFoundException('User not found');
-  //     // const filteredFiles = await this.fileService.findAll(userId, companyId);
-  //     const filteredFiles = await this.fileService.findAll(
-  //       userId,
-  //       companyId,
-  //       id,
-  //     );
-  //     if (!filteredFiles || filteredFiles.length === 0) {
-  //       console.log('No files found for this user to delete.');
-  //     }
-
-  //     for (const file of filteredFiles) {
-  //       const parsedPermissions = file.userPermissions
-  //         .map((permission) => {
-  //           try {
-  //             return typeof permission === 'string'
-  //               ? JSON.parse(permission)
-  //               : permission;
-  //           } catch (error) {
-  //             console.error('Error parsing permission:', error);
-  //             return [];
-  //           }
-  //         })
-  //         .flat();
-  //       const permissionIndex = parsedPermissions.findIndex(
-  //         (permission) => permission.permissionById === id.toString(),
-  //       );
-  //       if (permissionIndex !== -1) {
-  //         parsedPermissions.splice(permissionIndex, 1);
-
-  //         await this.fileService.updateFilePermissions(
-  //           file._id,
-  //           parsedPermissions,
-  //         );
-  //       }
-  //     }
-
-  //     await this.fileService.removeManyFiles(companyId, userId, id);
-  //     const deletedUser = await this.userModel.findByIdAndDelete(id);
-  //     if (!deletedUser) throw new NotFoundException('User not found');
-
-  //     return deletedUser;
-  //   } catch (e) {
-  //     console.log(e);
-  //     throw e;
-  //   }
-  // }
 
   async remove(
     companyId: Types.ObjectId | string,
@@ -442,14 +414,10 @@ export class UserService {
 
 
 
-// In userService
-async getUsersAddedInDateRange(companyId: string, startDate: Date, endDate: Date) {
-  console.log("User query:", {
-    company: companyId,
-    createdAt: { $gte: startDate, $lte: endDate }
-  });
+
+async getUsersAddedInDateRange(companyId: Types.ObjectId | string, startDate: Date, endDate: Date) {
   return this.userModel.find({
-    company: companyId,
+    companyId: companyId,
     createdAt: {
       $gte: startDate,
       $lte: endDate
