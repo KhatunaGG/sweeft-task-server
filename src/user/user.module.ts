@@ -10,6 +10,7 @@ import { CompanyModule } from 'src/company/company.module';
 import { AuthGuard } from 'src/guard/auth.guard';
 import { FileModule } from 'src/file/file.module';
 import { AuthModule } from 'src/auth/auth.module';
+import { AwsS3Module } from 'src/aws-s3/aws-s3.module';
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { AuthModule } from 'src/auth/auth.module';
 
 
     forwardRef(() => AuthModule),
+        AwsS3Module,
   ],
   controllers: [UserController],
   providers: [UserService, AuthGuard],

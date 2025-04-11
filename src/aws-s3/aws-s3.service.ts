@@ -95,4 +95,26 @@ export class AwsS3Service {
       console.log(e);
     }
   }
+
+  async deleteManyFiles(fileIds: string[]) {
+    try {
+      if (!fileIds || fileIds.length === 0) return 'No files to delete';
+      
+      let deletedCount = 0;
+      for (const fileId of fileIds) {
+        const config = {
+          Key: `sweeft-task/${fileId}`,
+          Bucket: this.bucketName,
+        };
+        const deleteCommand = new DeleteObjectCommand(config);
+        await this.s3.send(deleteCommand);
+        deletedCount++;
+      }
+      
+      return `Successfully deleted ${deletedCount} files`;
+    } catch (e) {
+      console.error('Error deleting multiple files:', e);
+      throw new BadRequestException('Could not delete files');
+    }
+  }
 }
