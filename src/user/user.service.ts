@@ -22,20 +22,21 @@ import { JwtService } from '@nestjs/jwt';
 import { QueryParamsDto } from 'src/file/dto/query-params.dto';
 import { Subscription } from 'src/enums/subscription.enum';
 import { AuthService } from 'src/auth/auth.service';
+import { AwsS3Service } from 'src/aws-s3/aws-s3.service';
 
 @Injectable()
 export class UserService {
   constructor(
     @InjectModel(User.name) private userModel: Model<User>,
     @Inject(forwardRef(() => FileService)) private fileService: FileService,
-    @Inject(forwardRef(() => AuthService)) private authService:  AuthService,
+    @Inject(forwardRef(() => AuthService)) private authService: AuthService,
     // private fileService: FileService,
     private emailSender: EmailSenderService,
     private companyService: CompanyService,
     private jwtService: JwtService,
+
+    private awsS3Service: AwsS3Service,
   ) {}
-
-
 
   // async create(companyId, createUserDto: CreateUserDto) {
   //   if (!companyId) {
@@ -87,17 +88,16 @@ export class UserService {
   //   }
   // }
 
-
   async create(companyId, createUserDto: CreateUserDto, userId) {
     if (!companyId) {
       throw new ForbiddenException('Permission denied');
     }
-    if(companyId.toString() !== userId.toString()) {
+    if (companyId.toString() !== userId.toString()) {
       throw new ForbiddenException('Permission denied');
     }
-    console.log(userId, "userId")
-    console.log(companyId, "companyId")
-    
+    console.log(userId, 'userId');
+    console.log(companyId, 'companyId');
+
     try {
       const { userEmail } = createUserDto;
       if (!userEmail) {
@@ -116,14 +116,20 @@ export class UserService {
       const usersThisMonth = await this.getUsersAddedInDateRange(
         companyId,
         startDate,
-        endDate
+        endDate,
       );
 
-      if (company.subscriptionPlan === Subscription.FREE && usersThisMonth.length >= 1) {
+      if (
+        company.subscriptionPlan === Subscription.FREE &&
+        usersThisMonth.length >= 1
+      ) {
         throw new BadRequestException(
-          'Free tier allows only 1 user. Please upgrade your subscription to add more users.'
+          'Free tier allows only 1 user. Please upgrade your subscription to add more users.',
         );
-      } else if (company.subscriptionPlan === Subscription.BASIC && usersThisMonth.length >= 5) {
+      } else if (
+        company.subscriptionPlan === Subscription.BASIC &&
+        usersThisMonth.length >= 5
+      ) {
         console.log('Basic tier user limit reached. Extra charges will apply.');
       }
       const validationToken = crypto.randomUUID();
@@ -139,7 +145,7 @@ export class UserService {
         validationLinkValidateDate,
         isVerified: false,
       };
-      
+
       const createdUser = await this.userModel.create(newUser);
       await createdUser.save();
       await this.emailSender.sendValidationEmail(
@@ -147,14 +153,17 @@ export class UserService {
         'Dear Colleague',
         fullValidationLink,
       );
-      if (company.subscriptionPlan === Subscription.BASIC && usersThisMonth.length >= 3) {
+      if (
+        company.subscriptionPlan === Subscription.BASIC &&
+        usersThisMonth.length >= 3
+      ) {
         await this.authService.checkSubscription(
           companyId,
           company.subscriptionPlan,
-          new Date(), 
+          new Date(),
         );
       }
-      
+
       return {
         message: 'User added successfully',
         status: 'success',
@@ -170,9 +179,6 @@ export class UserService {
       }
     }
   }
-
-
-  
 
   async verifyUserByVerificationToken(token: string) {
     try {
@@ -382,6 +388,23 @@ export class UserService {
         );
       }
       await company.save();
+
+      // if (userOwnedFiles && userOwnedFiles.length > 0) {
+      //   // Extract file paths for S3 deletion
+      //   const filePaths = userOwnedFiles.map(file => file.filePath);
+
+      //   // Delete all files from S3 at once
+      //   await this.awsS3Service.deleteManyFiles(filePaths);
+
+      //   // Remove file records from database
+      //   await this.fileService.removeManyFiles(companyId, userId, id);
+      // }
+
+      for (let file of userOwnedFiles) {
+        const path = file.filePath.split('/')[1];
+        await this.awsS3Service.deleteFileByFileId(path);
+      }
+
       await this.fileService.removeManyFiles(companyId, userId, id);
 
       const deletedUser = await this.userModel.findByIdAndDelete(id);
@@ -411,26 +434,19 @@ export class UserService {
     }
   }
 
-
-
-
-
-async getUsersAddedInDateRange(companyId: Types.ObjectId | string, startDate: Date, endDate: Date) {
-  return this.userModel.find({
-    companyId: companyId,
-    createdAt: {
-      $gte: startDate,
-      $lte: endDate
-    }
-  }).exec();
-}
-
-
-
-
-
-
-
-
-
+  async getUsersAddedInDateRange(
+    companyId: Types.ObjectId | string,
+    startDate: Date,
+    endDate: Date,
+  ) {
+    return this.userModel
+      .find({
+        companyId: companyId,
+        createdAt: {
+          $gte: startDate,
+          $lte: endDate,
+        },
+      })
+      .exec();
+  }
 }
