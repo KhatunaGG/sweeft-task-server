@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   Injectable,
+  NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { CompanyService } from 'src/company/company.service';
@@ -77,6 +78,7 @@ export class AuthService {
         fullValidationLink,
       );
       return {
+        email: email,
         message:
           'Company registered successfully! Please check your email to verify your account.',
       };
@@ -113,6 +115,88 @@ export class AuthService {
       throw e;
     }
   }
+
+
+
+
+
+
+
+
+  async resendVerificationLink(email: string) {
+    try {
+      const existingCompany = await this.companyService.findOne({ email });
+  
+      if (!existingCompany) throw new NotFoundException('User not found');
+      if (existingCompany.isVerified) throw new BadRequestException('User already verified');
+  
+      const now = new Date();
+      const resendLimit = 3;
+      const windowDuration = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+  
+      let linkResendCount = existingCompany.linkResendCount || 0;
+      let firstResendAttemptDate = existingCompany.firstResendAttemptDate;
+  
+      // Initialize the window if it's the first attempt
+      if (!firstResendAttemptDate || now.getTime() - new Date(firstResendAttemptDate).getTime() > windowDuration) {
+        linkResendCount = 0;
+        firstResendAttemptDate = now;
+      }
+  
+      if (linkResendCount >= resendLimit) {
+        const nextAvailableTime = new Date(firstResendAttemptDate.getTime() + windowDuration);
+        throw new BadRequestException(
+          `Resend limit reached. You can request a new verification link after ${nextAvailableTime.toLocaleString()}`,
+        );
+      }
+  
+      // Generate new token
+      const validationToken = crypto.randomUUID();
+      const validationLinkValidateDate = new Date(now.getTime() + 3 * 60 * 1000); // valid for 3 minutes
+      const fullValidationLink = `${process.env.FRONTEND_URL}/sign-in?token=${validationToken}`;
+  
+      // Update the company in DB
+      await this.companyService.update(existingCompany._id, {
+        validationLink: validationToken,
+        validationLinkValidateDate,
+        linkResendCount: linkResendCount + 1,
+        firstResendAttemptDate,
+      });
+  
+      // Send email
+      await this.emailSender.sendValidationEmail(
+        email,
+        existingCompany.name,
+        fullValidationLink,
+      );
+  
+      return {
+        message: 'Verification email resent successfully. Please check your inbox.',
+      };
+    } catch (e) {
+      console.error('Error in resendVerificationLink:', e);
+      throw e;
+    }
+  }
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
   async signIn(signInDto: SignInDto) {
     try {

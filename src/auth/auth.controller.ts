@@ -152,6 +152,12 @@ export class AuthController {
     return this.authService.findOne(+id);
   }
 
+  @Post('resend-link')
+  async resendVerificationLink(@Body("email") email: string) {
+    return this.authService.resendVerificationLink(email)
+
+  }
+
   // @Patch(':id')
   // update(@Param('id') id: string, @Body() updateAuthDto: UpdateAuthDto) {
   //   return this.authService.update(+id, updateAuthDto);

@@ -77,7 +77,16 @@ subscriptionFirstUpgrade: boolean
 
 @Prop()
 createdAt: Date; // Add createdAt here
-updatedAt: Date;
+
+
+
+@Prop({ default: 0 })
+linkResendCount: number;
+
+
+
+@Prop({ type: Date, default: null })
+firstResendAttemptDate: Date
 
 }
 
