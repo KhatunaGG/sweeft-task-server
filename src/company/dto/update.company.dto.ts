@@ -75,4 +75,12 @@ export class UpdateCompanyDto extends PartialType(CreateCompanyDto) {
 
 
 
+  @IsNumber()
+  @IsOptional()
+  linkResendCount?: number
+
+  @IsDate()
+  @IsOptional()
+  firstResendAttemptDate?: Date
+
 }
