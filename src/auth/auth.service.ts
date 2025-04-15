@@ -59,7 +59,8 @@ export class AuthService {
       validationLinkValidateDate.setTime(
         validationLinkValidateDate.getTime() + 3 * 60 * 1000,
       );
-      const fullValidationLink = `${process.env.FRONTEND_URL}/sign-in?token=${validationToken}`;
+      // const fullValidationLink = `${process.env.FRONTEND_URL}/sign-in?token=${validationToken}`;
+      const fullValidationLink = `${"https://sweeft-task-client.vercel.app/"}/sign-in?token=${validationToken}`;
       const newCompany = await this.companyService.create({
         name,
         email,
