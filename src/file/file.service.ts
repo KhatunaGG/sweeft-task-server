@@ -27,97 +27,9 @@ export class FileService {
     @InjectModel(File.name) private readonly fileModel: Model<File>,
     @Inject(forwardRef(() => UserService)) private userService: UserService,
     @Inject(forwardRef(() => AuthService)) private authService: AuthService,
-    // private userService: UserService,
     private aswS3Service: AwsS3Service,
     private companyService: CompanyService,
   ) {}
-
-  // async uploadFile(
-  //   filePath: string,
-  //   buffer: Buffer,
-  //   fileOwnerId: Types.ObjectId | string,
-  //   fileOwnerCompanyId: Types.ObjectId | string,
-  //   userPermissions: string[],
-  //   fileName: string,
-  //   fileExtension: string,
-  // ) {
-  //   try {
-  //     if (!fileOwnerCompanyId) {
-  //       throw new UnauthorizedException('User ID or Company ID is required.');
-  //     }
-  //     const filePathFromAws = await this.aswS3Service.uploadFile(
-  //       filePath,
-  //       buffer,
-  //     );
-  //     if (!filePathFromAws) {
-  //       throw new NotFoundException('Image ID not found');
-  //     }
-  //     const file = new this.fileModel({
-  //       fileOwnerId,
-  //       fileOwnerCompanyId,
-  //       filePath: filePathFromAws,
-  //       userPermissions,
-  //       fileName,
-  //       fileExtension,
-  //     });
-  //     const newFile = await this.fileModel.create(file);
-  //     if (newFile) {
-  //       const existingCompany =
-  //         await this.companyService.getById(fileOwnerCompanyId);
-  //       if (!existingCompany) return;
-
-  //       existingCompany.uploadedFiles.push(
-  //         new mongoose.Types.ObjectId(file._id),
-  //       );
-
-  //       await existingCompany.save();
-
-  //       const fileLength = (await this.fileModel.find()).length;
-  //       console.log(fileLength, "fileLength")
-  //       console.log(existingCompany.subscriptionPlan, "existingCompany.subscriptionPlan")
-  //               if (
-  //                 fileLength > 10 &&
-  //                 existingCompany.subscriptionPlan === Subscription.FREE
-  //               ) {
-  //                 await this.authService.checkSubscription(
-  //                   existingCompany._id,
-  //                   existingCompany.subscriptionPlan,
-  //                   existingCompany.subscriptionUpdateDate,
-  //                 );
-  //               } else if (
-  //                 fileLength > 10 &&
-  //                 existingCompany.subscriptionPlan === Subscription.BASIC
-  //               ) {
-  //                 await this.authService.checkSubscription(
-  //                   existingCompany._id,
-  //                   existingCompany.subscriptionPlan,
-  //                   existingCompany.subscriptionUpdateDate,
-  //                 );
-  //               } else if (
-  //                 fileLength > 20 &&
-  //                 existingCompany.subscriptionPlan === Subscription.PREMIUM
-  //               ) {
-  //                 await this.authService.checkSubscription(
-  //                   existingCompany._id,
-  //                   existingCompany.subscriptionPlan,
-  //                   existingCompany.subscriptionUpdateDate,
-  //                 );
-  //               }
-
-  //       const existingUser = await this.userService.getById(fileOwnerId);
-  //       if (!existingUser) return;
-  //       existingUser.uploadedFiles.push(new mongoose.Types.ObjectId(file._id));
-  //       await existingUser.save();
-  //     }
-  //     return {
-  //       uploadedFile: newFile,
-  //       filePathFromAws,
-  //     };
-  //   } catch (e) {
-  //     console.log(e);
-  //     throw e;
-  //   }
-  // }
 
   async uploadFile(
     filePath: string,
@@ -192,7 +104,7 @@ export class FileService {
         await this.authService.checkSubscription(
           existingCompany._id,
           existingCompany.subscriptionPlan,
-          new Date(), 
+          new Date(),
         );
         const existingUser = await this.userService.getById(fileOwnerId);
         if (existingUser) {
@@ -248,7 +160,6 @@ export class FileService {
       console.log(e);
     }
   }
-
 
   async remove(
     companyId: string,
@@ -316,10 +227,6 @@ export class FileService {
 
   create(createFileDto: CreateFileDto) {
     return this.fileModel.create(createFileDto);
-  }
-
-  findOne(id: string) {
-    return `This action returns a #${id} file`;
   }
 
   async update(
@@ -520,19 +427,6 @@ export class FileService {
     return mimeTypes[ext] || 'application/octet-stream';
   }
 
-  // async getUploadedFilesByCompany(
-  //   companyId: Types.ObjectId | string,
-  //   subscriptionUpdateDate: Date,
-  // ) {
-  //   const startOfMonth = new Date(subscriptionUpdateDate);
-  //   const endOfMonth = new Date(subscriptionUpdateDate);
-  //   endOfMonth.setMonth(endOfMonth.getMonth() + 1);
-  //   return await this.fileModel.find({
-  //     fileOwnerCompanyId: companyId,
-  //     createdAt: { $gte: startOfMonth, $lt: endOfMonth },
-  //   });
-  // }
-
   async getAllByPage(
     userId: Types.ObjectId | string,
     companyId: Types.ObjectId | string,
@@ -547,9 +441,7 @@ export class FileService {
       if (!filesTotalLength) {
         console.log('No files found');
       }
-
       let allFiles;
-
       if (companyId.toString() === userId.toString()) {
         allFiles = await this.fileModel
           .find({ fileOwnerCompanyId: companyId })
@@ -620,7 +512,7 @@ export class FileService {
   async getUploadedFilesByCompanyInDateRange(companyId, startDate, endDate) {
     return this.fileModel.find({
       fileOwnerCompanyId: companyId,
-      createdAt: { $gte: startDate, $lte: endDate }
+      createdAt: { $gte: startDate, $lte: endDate },
     });
   }
 }

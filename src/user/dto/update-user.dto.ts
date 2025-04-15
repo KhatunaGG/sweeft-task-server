@@ -15,16 +15,10 @@ export class UpdateUserDto extends PartialType(CreateUserDto) {
   @IsNotEmpty()
   @IsString()
   userPassword?: string;
-
+  
   companyId?: string;
   isVerified?: boolean;
   validationLink?: string;
   validationLinkValidateDate?: Date;
-
-
-
-
-  
-
   uploadedFiles?: (string | Types.ObjectId)[];
 }

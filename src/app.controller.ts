@@ -4,37 +4,10 @@ import { EmailSenderService } from './email-sender/email-sender.service';
 
 @Controller()
 export class AppController {
-  constructor(private readonly appService: AppService,
-
-    // private emailSenderService: EmailSenderService
-  ) {}
+  constructor(private readonly appService: AppService) {}
 
   @Get()
   getHello(): string {
     return this.appService.getHello();
   }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    // @Post('/send-email')
-    // sendEmail(@Body() body) {
-    //   console.log(body, "body ")
-    //   const { to, subject, text } = body;
-    //   return this.emailSenderService.sendEmailText(to, subject, text);
-    // }
 }

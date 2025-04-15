@@ -21,7 +21,6 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { Types } from 'mongoose';
 import { QueryParamsDto } from './dto/query-params.dto';
 
-
 @Controller('file')
 export class FileController {
   constructor(private readonly fileService: FileService) {}
@@ -72,12 +71,6 @@ export class FileController {
     );
   }
 
-  // @Get()
-  // @UseGuards(AuthGuard)
-  // findAll(@Req() req) {
-  //   return this.fileService.findAll(req.userId, req.companyId);
-  // }
-
   @Get('all/')
   @UseGuards(AuthGuard)
   getAllByPage(@Req() req, @Query() queryParams: QueryParamsDto) {
@@ -93,10 +86,6 @@ export class FileController {
     return this.fileService.create(createFileDto);
   }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.fileService.findOne(id);
-  }
 
   @Delete(':id')
   @UseGuards(AuthGuard)

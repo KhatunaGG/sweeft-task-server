@@ -24,11 +24,8 @@ import { AwsS3Module } from 'src/aws-s3/aws-s3.module';
     EmailSenderModule,
     CompanyModule,
     forwardRef(() => FileModule),
-
-
-
     forwardRef(() => AuthModule),
-        AwsS3Module,
+    AwsS3Module,
   ],
   controllers: [UserController],
   providers: [UserService, AuthGuard],

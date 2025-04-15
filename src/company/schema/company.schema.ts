@@ -33,7 +33,6 @@ export class Company {
   role: string;
 
   @Prop({ type: String, enum: Subscription, default: Subscription.FREE })
-  // @Prop({ type: String, enum: Subscription, default: null })
   subscriptionPlan: string;
 
   @Prop({
@@ -50,8 +49,7 @@ export class Company {
   })
   user: mongoose.Types.ObjectId[];
 
-
- @Prop({ default: null })
+  @Prop({ default: null })
   subscriptionUpdateDate: Date;
 
   @Prop({ default: 0 })
@@ -59,35 +57,21 @@ export class Company {
 
   @Prop({ default: 0 })
   extraUserCharge: number;
-  
+
   @Prop({ default: 0 })
   extraFileCharge: number;
 
-
-
-
-
   @Prop({ type: Boolean, default: false })
-// hasChangedFromDefaultPlan: boolean;
-subscriptionFirstUpgrade: boolean
+  subscriptionFirstUpgrade: boolean;
 
+  @Prop()
+  createdAt: Date;
 
+  @Prop({ default: 0 })
+  linkResendCount: number;
 
-
-
-@Prop()
-createdAt: Date; // Add createdAt here
-
-
-
-@Prop({ default: 0 })
-linkResendCount: number;
-
-
-
-@Prop({ type: Date, default: null })
-firstResendAttemptDate: Date
-
+  @Prop({ type: Date, default: null })
+  firstResendAttemptDate: Date;
 }
 
 export const CompanySchema = SchemaFactory.createForClass(Company);

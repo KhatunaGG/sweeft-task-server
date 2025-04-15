@@ -116,87 +116,62 @@ export class AuthService {
     }
   }
 
-
-
-
-
-
-
-
   async resendVerificationLink(email: string) {
     try {
       const existingCompany = await this.companyService.findOne({ email });
-  
+
       if (!existingCompany) throw new NotFoundException('User not found');
-      if (existingCompany.isVerified) throw new BadRequestException('User already verified');
-  
+      if (existingCompany.isVerified)
+        throw new BadRequestException('User already verified');
+
       const now = new Date();
       const resendLimit = 3;
-      const windowDuration = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
-  
+      const windowDuration = 24 * 60 * 60 * 1000;
       let linkResendCount = existingCompany.linkResendCount || 0;
       let firstResendAttemptDate = existingCompany.firstResendAttemptDate;
-  
-      // Initialize the window if it's the first attempt
-      if (!firstResendAttemptDate || now.getTime() - new Date(firstResendAttemptDate).getTime() > windowDuration) {
+      if (
+        !firstResendAttemptDate ||
+        now.getTime() - new Date(firstResendAttemptDate).getTime() >
+          windowDuration
+      ) {
         linkResendCount = 0;
         firstResendAttemptDate = now;
       }
-  
+
       if (linkResendCount >= resendLimit) {
-        const nextAvailableTime = new Date(firstResendAttemptDate.getTime() + windowDuration);
+        const nextAvailableTime = new Date(
+          firstResendAttemptDate.getTime() + windowDuration,
+        );
         throw new BadRequestException(
           `Resend limit reached. You can request a new verification link after ${nextAvailableTime.toLocaleString()}`,
         );
       }
-  
-      // Generate new token
       const validationToken = crypto.randomUUID();
-      const validationLinkValidateDate = new Date(now.getTime() + 3 * 60 * 1000); // valid for 3 minutes
+      const validationLinkValidateDate = new Date(
+        now.getTime() + 3 * 60 * 1000,
+      );
       const fullValidationLink = `${process.env.FRONTEND_URL}/sign-in?token=${validationToken}`;
-  
-      // Update the company in DB
       await this.companyService.update(existingCompany._id, {
         validationLink: validationToken,
         validationLinkValidateDate,
         linkResendCount: linkResendCount + 1,
         firstResendAttemptDate,
       });
-  
-      // Send email
       await this.emailSender.sendValidationEmail(
         email,
         existingCompany.name,
         fullValidationLink,
       );
-  
+
       return {
-        message: 'Verification email resent successfully. Please check your inbox.',
+        message:
+          'Verification email resent successfully. Please check your inbox.',
       };
     } catch (e) {
       console.error('Error in resendVerificationLink:', e);
       throw e;
     }
   }
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
   async signIn(signInDto: SignInDto) {
     try {
@@ -247,276 +222,129 @@ export class AuthService {
       throw e;
     }
   }
+  async updateCompany(
+    companyId: Types.ObjectId | string,
+    updateCompanyDto: UpdateCompanyDto,
+  ) {
+    try {
+      if (!companyId) throw new UnauthorizedException('Company ID is required');
+      if (!updateCompanyDto)
+        throw new BadRequestException('Update data is required');
 
+      const company = await this.companyService.getById(companyId);
+      if (!company) throw new BadRequestException('Company not found');
 
+      const updatedCompanyDto = {
+        ...company.toObject(),
+        ...updateCompanyDto,
+      };
+      if (
+        updateCompanyDto.subscriptionPlan &&
+        updateCompanyDto.subscriptionPlan !== company.subscriptionPlan
+      ) {
+        updatedCompanyDto.premiumCharge = 0;
+        updatedCompanyDto.extraUserCharge = 0;
+        updatedCompanyDto.extraFileCharge = 0;
+        updatedCompanyDto.subscriptionUpdateDate = new Date();
+        await this.checkSubscription(
+          companyId,
+          updateCompanyDto.subscriptionPlan,
+          updatedCompanyDto.subscriptionUpdateDate,
+        );
+      }
+      const updatedCompany = await this.companyService.updateCompany(
+        companyId,
+        updatedCompanyDto,
+      );
+      return { message: 'The company data has been successfully updated.' };
+    } catch (e) {
+      console.log(e);
+      throw e;
+    }
+  }
 
-
-//   async updateCompany(
-//     companyId: Types.ObjectId | string,
-//     updateCompanyDto: UpdateCompanyDto,
-//   ) {
-//     try {
-//       if (!companyId) throw new UnauthorizedException('Company ID is required');
-//       if (!updateCompanyDto)
-//         throw new BadRequestException('Update data is required');
-//       const company = await this.companyService.getById(companyId);
-//       if (!company) throw new BadRequestException('Company not found');
-//       console.log(company.subscriptionPlan, 'company.subscriptionPlan');
-//       const updatedCompanyDto = {
-//         ...company.toObject(),
-//         ...updateCompanyDto,
-//       };
-
-//       if (
-//         updateCompanyDto.subscriptionPlan &&
-//         updateCompanyDto.subscriptionPlan !== company.subscriptionPlan
-//       ) {
-//         updatedCompanyDto.subscriptionUpdateDate = new Date();
-//         await this.checkSubscription(
-//           companyId,
-//           updateCompanyDto.subscriptionPlan,
-//           updatedCompanyDto.subscriptionUpdateDate,
-//         );
-//       }
-//       const updatedCompany = await this.companyService.updateCompany(
-//         companyId,
-//         updatedCompanyDto,
-//       );
-//       return { message: 'The company data has been successfully updated.' };
-//     } catch (e) {
-//       console.log(e);
-//       throw e;
-//     }
-//   }
-
-
-// async updateSubscription(companyId, newSubscriptionPlan) {
-//   const company = await this.companyService.getById(companyId);
-  
-//   if (company.subscriptionPlan !== newSubscriptionPlan) {
-//     const currentDate = new Date();
-//     await this.checkSubscription(
-//       companyId,
-//       newSubscriptionPlan,
-//       currentDate, 
-//     );
-//   } else {
-//     await this.checkSubscription(
-//       companyId,
-//       newSubscriptionPlan,
-//       company.subscriptionUpdateDate,
-//     );
-//   }
-// }
-
-//   async checkSubscription(
-//     companyId: Types.ObjectId | string,
-//     updatedSubscriptionPlan: string,
-//     newUpdateDate: Date,
-//   ) {
-//     if (!companyId) throw new UnauthorizedException('Company ID is required');
-//     const company = await this.companyService.getById(companyId);
-//     if (!company) throw new BadRequestException('Company not found');
-//       const subscriptionPlan = updatedSubscriptionPlan;
-//     const fileCount = company.uploadedFiles.length;
-//     const currentDate = new Date();
-//     const startDate = new Date(company.subscriptionUpdateDate);
-//     const endDate = new Date(currentDate);
-    
-//     const usersCurrentMonth = await this.userService.getUsersAddedInDateRange(
-//       companyId,
-//       startDate,
-//       endDate,
-//     );
-  
-//     let premiumCharge = 0;
-//     let extraUserCharge = 0;
-//     let extraFileCharge = 0;
-  
-//     if (subscriptionPlan === Subscription.FREE) {
-//       premiumCharge = 0;
-//       if (usersCurrentMonth.length > 1) {
-//         throw new BadRequestException(
-//           'You have reached the user limit for the free plan. Upgrade your plan to add more users.',
-//         );
-//       }
-//       if (fileCount > 5) {
-//         throw new BadRequestException(
-//           'You have reached the upload limit for the free plan. Upgrade your plan to upload more files.',
-//         );
-//       }
-//     } else if (subscriptionPlan === Subscription.BASIC) {
-//       premiumCharge = 0;
-//       if (usersCurrentMonth.length > 3) {
-//         extraUserCharge = (usersCurrentMonth.length - 3) * 5;
-//       }
-//       if (fileCount > 5) {
-//         extraFileCharge = (fileCount - 5) * 0.5;
-//       }
-//     } else if (subscriptionPlan === Subscription.PREMIUM) {
-//       premiumCharge = 30;
-//       if (fileCount > 10) {
-//         extraFileCharge = (fileCount - 10) * 0.5;
-//         console.log('Extra file charge calculation:', fileCount, '-', 10, '*', 0.5, '=', extraFileCharge);
-//       }
-//     }
-    
-//     const updatedCompany = await this.companyService.updateCompany(companyId, {
-//       premiumCharge,
-//       extraUserCharge,
-//       extraFileCharge,
-//       subscriptionPlan,
-//       subscriptionUpdateDate: newUpdateDate,
-//     });
-  
-//     return { message: 'The company data has been successfully updated.' };
-//   }
-
-
-
-
-
-async updateCompany(
-  companyId: Types.ObjectId | string,
-  updateCompanyDto: UpdateCompanyDto,
-) {
-  try {
-    if (!companyId) throw new UnauthorizedException('Company ID is required');
-    if (!updateCompanyDto)
-      throw new BadRequestException('Update data is required');
-    
+  async updateSubscription(
+    companyId: Types.ObjectId | string,
+    newSubscriptionPlan: string,
+  ) {
     const company = await this.companyService.getById(companyId);
     if (!company) throw new BadRequestException('Company not found');
-    
-    const updatedCompanyDto = {
-      ...company.toObject(),
-      ...updateCompanyDto,
-    };
-    if (
-      updateCompanyDto.subscriptionPlan &&
-      updateCompanyDto.subscriptionPlan !== company.subscriptionPlan
-    ) {
-      updatedCompanyDto.premiumCharge = 0;
-      updatedCompanyDto.extraUserCharge = 0;
-      updatedCompanyDto.extraFileCharge = 0;
-      updatedCompanyDto.subscriptionUpdateDate = new Date();
+    if (company.subscriptionPlan !== newSubscriptionPlan) {
+      const currentDate = new Date();
+      await this.companyService.updateCompany(companyId, {
+        premiumCharge: 0,
+        extraUserCharge: 0,
+        extraFileCharge: 0,
+        subscriptionUpdateDate: currentDate,
+      });
+      await this.checkSubscription(companyId, newSubscriptionPlan, currentDate);
+    } else {
       await this.checkSubscription(
         companyId,
-        updateCompanyDto.subscriptionPlan,
-        updatedCompanyDto.subscriptionUpdateDate,
+        newSubscriptionPlan,
+        company.subscriptionUpdateDate,
       );
     }
-    
-    const updatedCompany = await this.companyService.updateCompany(
-      companyId,
-      updatedCompanyDto,
-    );
-    
-    return { message: 'The company data has been successfully updated.' };
-  } catch (e) {
-    console.log(e);
-    throw e;
+    return { message: 'Subscription updated successfully.' };
   }
-}
 
-async updateSubscription(companyId: Types.ObjectId | string, newSubscriptionPlan: string) {
-  const company = await this.companyService.getById(companyId);
-  if (!company) throw new BadRequestException('Company not found');
-  if (company.subscriptionPlan !== newSubscriptionPlan) {
+  async checkSubscription(
+    companyId: Types.ObjectId | string,
+    updatedSubscriptionPlan: string,
+    newUpdateDate: Date,
+  ) {
+    if (!companyId) throw new UnauthorizedException('Company ID is required');
+    const company = await this.companyService.getById(companyId);
+    if (!company) throw new BadRequestException('Company not found');
+
+    const subscriptionPlan = updatedSubscriptionPlan;
+    const fileCount = company.uploadedFiles.length;
     const currentDate = new Date();
-    await this.companyService.updateCompany(companyId, {
-      premiumCharge: 0,
-      extraUserCharge: 0,
-      extraFileCharge: 0,
-      subscriptionUpdateDate: currentDate,
+    const startDate = new Date(company.subscriptionUpdateDate);
+    const endDate = new Date(currentDate);
+
+    const usersCurrentMonth = await this.userService.getUsersAddedInDateRange(
+      companyId,
+      startDate,
+      endDate,
+    );
+    let premiumCharge = 0;
+    let extraUserCharge = 0;
+    let extraFileCharge = 0;
+    if (subscriptionPlan === Subscription.FREE) {
+      if (usersCurrentMonth.length > 1) {
+        throw new BadRequestException(
+          'You have reached the user limit for the free plan. Upgrade your plan to add more users.',
+        );
+      }
+      if (fileCount > 5) {
+        throw new BadRequestException(
+          'You have reached the upload limit for the free plan. Upgrade your plan to upload more files.',
+        );
+      }
+    } else if (subscriptionPlan === Subscription.BASIC) {
+      if (usersCurrentMonth.length > 3) {
+        extraUserCharge = (usersCurrentMonth.length - 3) * 5;
+      }
+      if (fileCount > 5) {
+        extraFileCharge = (fileCount - 5) * 0.5;
+      }
+    } else if (subscriptionPlan === Subscription.PREMIUM) {
+      premiumCharge = 30;
+      if (fileCount > 10) {
+        extraFileCharge = (fileCount - 10) * 0.5;
+      }
+    }
+    const updatedCompany = await this.companyService.updateCompany(companyId, {
+      premiumCharge,
+      extraUserCharge,
+      extraFileCharge,
+      subscriptionPlan,
+      subscriptionUpdateDate: newUpdateDate,
     });
-    await this.checkSubscription(
-      companyId,
-      newSubscriptionPlan,
-      currentDate,
-    );
-  } else {
-    await this.checkSubscription(
-      companyId,
-      newSubscriptionPlan,
-      company.subscriptionUpdateDate,
-    );
+
+    return { message: 'The company data has been successfully updated.' };
   }
-  
-  return { message: 'Subscription updated successfully.' };
-}
-
-async checkSubscription(
-  companyId: Types.ObjectId | string,
-  updatedSubscriptionPlan: string,
-  newUpdateDate: Date,
-) {
-  if (!companyId) throw new UnauthorizedException('Company ID is required');
-  const company = await this.companyService.getById(companyId);
-  if (!company) throw new BadRequestException('Company not found');
-
-  const subscriptionPlan = updatedSubscriptionPlan;
-  const fileCount = company.uploadedFiles.length;
-  const currentDate = new Date();
-  const startDate = new Date(company.subscriptionUpdateDate);
-  const endDate = new Date(currentDate);
-  
-  const usersCurrentMonth = await this.userService.getUsersAddedInDateRange(
-    companyId,
-    startDate,
-    endDate,
-  );
-  let premiumCharge = 0;
-  let extraUserCharge = 0;
-  let extraFileCharge = 0;
-  if (subscriptionPlan === Subscription.FREE) {
-    if (usersCurrentMonth.length > 1) {
-      throw new BadRequestException(
-        'You have reached the user limit for the free plan. Upgrade your plan to add more users.',
-      );
-    }
-    if (fileCount > 5) {
-      throw new BadRequestException(
-        'You have reached the upload limit for the free plan. Upgrade your plan to upload more files.',
-      );
-    }
-  } else if (subscriptionPlan === Subscription.BASIC) {
-    if (usersCurrentMonth.length > 3) {
-      extraUserCharge = (usersCurrentMonth.length - 3) * 5;
-    }
-    if (fileCount > 5) {
-      extraFileCharge = (fileCount - 5) * 0.5;
-    }
-  } else if (subscriptionPlan === Subscription.PREMIUM) {
-    premiumCharge = 30;
-    if (fileCount > 10) {
-      extraFileCharge = (fileCount - 10) * 0.5;
-    }
-  }
-  const updatedCompany = await this.companyService.updateCompany(companyId, {
-    premiumCharge,
-    extraUserCharge,
-    extraFileCharge,
-    subscriptionPlan,
-    subscriptionUpdateDate: newUpdateDate,
-  });
-
-  return { message: 'The company data has been successfully updated.' };
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
   async getCurrentUser(userId: string, companyId: string, role: string) {
     if (!companyId || !userId) {
@@ -575,17 +403,5 @@ async checkSubscription(
       console.log(e);
       throw e;
     }
-  }
-
-  findAll() {
-    return `This action returns all auth`;
-  }
-
-  findOne(id: number) {
-    return `This action returns a #${id} auth`;
-  }
-
-  remove(id: number) {
-    return `This action removes a #${id} auth`;
   }
 }
