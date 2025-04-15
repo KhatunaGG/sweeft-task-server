@@ -62,5 +62,4 @@ export class UserController {
   ) {
     return this.userService.update(id, updatedUserDto);
   }
-  
 }

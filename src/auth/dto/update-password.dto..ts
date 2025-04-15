@@ -10,5 +10,3 @@ export class UpdatePasswordDto {
   @MinLength(4, { message: 'New password must be at least 4 characters long' })
   newPassword: string;
 }
-
-

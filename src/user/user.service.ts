@@ -30,63 +30,11 @@ export class UserService {
     @InjectModel(User.name) private userModel: Model<User>,
     @Inject(forwardRef(() => FileService)) private fileService: FileService,
     @Inject(forwardRef(() => AuthService)) private authService: AuthService,
-    // private fileService: FileService,
     private emailSender: EmailSenderService,
     private companyService: CompanyService,
     private jwtService: JwtService,
-
     private awsS3Service: AwsS3Service,
   ) {}
-
-  // async create(companyId, createUserDto: CreateUserDto) {
-  //   if (!companyId) {
-  //     throw new ForbiddenException('Permission denied');
-  //   }
-  //   try {
-  //     const { userEmail } = createUserDto;
-  //     if (!userEmail) {
-  //       throw new BadRequestException('User Email is required');
-  //     }
-  //     const existingUser = await this.userModel.findOne({ userEmail });
-  //     if (existingUser) {
-  //       throw new BadRequestException('User already exists');
-  //     }
-  //     const validationToken = crypto.randomUUID();
-  //     const validationLinkValidateDate = new Date();
-  //     validationLinkValidateDate.setTime(
-  //       validationLinkValidateDate.getTime() + 3 * 60 * 1000,
-  //     );
-  //     const fullValidationLink = `${process.env.FRONTEND_URL}/user-sign-in?token=${validationToken}`;
-  //     const newUser = {
-  //       userEmail,
-  //       companyId,
-  //       validationLink: validationToken,
-  //       validationLinkValidateDate,
-  //       isVerified: false,
-  //     };
-  //     const createdUser = await this.userModel.create(newUser);
-  //     await createdUser.save();
-  //     await this.emailSender.sendValidationEmail(
-  //       userEmail,
-  //       'Dear Colleague',
-  //       fullValidationLink,
-  //     );
-  //     return {
-  //       message: 'User added successfully',
-  //       status: 'success',
-  //     };
-  //   } catch (e) {
-  //     console.log('Error creating user:', e);
-  //     // throw e;
-  //     if (e instanceof BadRequestException || e instanceof NotFoundException) {
-  //       throw e;
-  //     } else {
-  //       throw new InternalServerErrorException(
-  //         'An unexpected error occurred while sending the verification email',
-  //       );
-  //     }
-  //   }
-  // }
 
   async create(companyId, createUserDto: CreateUserDto, userId) {
     if (!companyId) {
@@ -253,8 +201,6 @@ export class UserService {
         );
         await existingUsersCompany.save();
       }
-      // return { accessToken };
-
       return { message: 'User registered successfully ' };
     } catch (e) {
       console.log(e);
@@ -388,18 +334,6 @@ export class UserService {
         );
       }
       await company.save();
-
-      // if (userOwnedFiles && userOwnedFiles.length > 0) {
-      //   // Extract file paths for S3 deletion
-      //   const filePaths = userOwnedFiles.map(file => file.filePath);
-
-      //   // Delete all files from S3 at once
-      //   await this.awsS3Service.deleteManyFiles(filePaths);
-
-      //   // Remove file records from database
-      //   await this.fileService.removeManyFiles(companyId, userId, id);
-      // }
-
       for (let file of userOwnedFiles) {
         const path = file.filePath.split('/')[1];
         await this.awsS3Service.deleteFileByFileId(path);

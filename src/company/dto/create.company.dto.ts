@@ -1,5 +1,12 @@
 import { Transform } from 'class-transformer';
-import { IsBoolean, IsDate,  IsEmail, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import {
+  IsBoolean,
+  IsDate,
+  IsEmail,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+} from 'class-validator';
 
 export class CreateCompanyDto {
   @IsString()
@@ -8,7 +15,7 @@ export class CreateCompanyDto {
 
   @IsEmail()
   @IsNotEmpty()
-  @Transform(({value}) => value.toLowerCase())
+  @Transform(({ value }) => value.toLowerCase())
   email: string;
 
   @IsString()
@@ -23,18 +30,6 @@ export class CreateCompanyDto {
   @IsNotEmpty()
   industry: string;
 
-
-
-
-
-
-
-
-
-
-  
-
-
   @IsBoolean()
   @IsOptional()
   isVerified?: boolean;
@@ -43,27 +38,9 @@ export class CreateCompanyDto {
   @IsOptional()
   validationLink?: string;
 
-
   @IsDate()
   @IsOptional()
   validationLinkValidateDate?: Date;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  
 
   @IsDate()
   @IsOptional()

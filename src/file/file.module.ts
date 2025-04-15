@@ -13,24 +13,13 @@ import { AuthModule } from 'src/auth/auth.module';
   imports: [
     MongooseModule.forFeature([{ name: File.name, schema: FileSchema }]),
     AwsS3Module,
-    // AuthModule,
     CompanyModule,
     forwardRef(() => UserModule),
 
-
-
-
-
-
-
-
-
-    
-    forwardRef(() => AuthModule)
+    forwardRef(() => AuthModule),
   ],
   controllers: [FileController],
   providers: [FileService, AuthGuard],
   exports: [FileService],
-
 })
 export class FileModule {}

@@ -11,7 +11,6 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 
-
 @Injectable()
 export class AwsS3Service {
   private bucketName;
@@ -37,7 +36,6 @@ export class AwsS3Service {
       };
       const uploadCommand = new PutObjectCommand(config);
       await this.s3.send(uploadCommand);
-      // return `https://${this.bucketName}.s3.${process.env.AWS_REGION}.amazonaws.com/${filePath}`;
       return filePath;
     } catch (e) {
       console.error('Error uploading file:', e);
@@ -99,7 +97,7 @@ export class AwsS3Service {
   async deleteManyFiles(fileIds: string[]) {
     try {
       if (!fileIds || fileIds.length === 0) return 'No files to delete';
-      
+
       let deletedCount = 0;
       for (const fileId of fileIds) {
         const config = {
@@ -110,7 +108,7 @@ export class AwsS3Service {
         await this.s3.send(deleteCommand);
         deletedCount++;
       }
-      
+
       return `Successfully deleted ${deletedCount} files`;
     } catch (e) {
       console.error('Error deleting multiple files:', e);

@@ -8,7 +8,6 @@ import { EmailSenderModule } from 'src/email-sender/email-sender.module';
 import { UserModule } from 'src/user/user.module';
 import { FileModule } from 'src/file/file.module';
 
-
 @Module({
   imports: [
     ConfigModule.forRoot(),
@@ -17,25 +16,13 @@ import { FileModule } from 'src/file/file.module';
       secret: process.env.JWT_SECRET,
       signOptions: { expiresIn: '1h' },
     }),
-
     CompanyModule,
     EmailSenderModule,
-    // CompanyModule,
-
     UserModule,
-    forwardRef(() => FileModule)
+    forwardRef(() => FileModule),
   ],
   controllers: [AuthController],
   providers: [AuthService],
-
-
-
-
-
-
-
-
-
-  exports: [AuthService]
+  exports: [AuthService],
 })
 export class AuthModule {}

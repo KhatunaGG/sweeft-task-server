@@ -1,11 +1,17 @@
 import { PartialType } from '@nestjs/mapped-types';
 import { CreateCompanyDto } from './create.company.dto';
 import { Types } from 'mongoose';
-import { IsArray, IsBoolean, IsDate, IsNumber, IsOptional, IsString } from 'class-validator';
+import {
+  IsArray,
+  IsBoolean,
+  IsDate,
+  IsNumber,
+  IsOptional,
+  IsString,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class UpdateCompanyDto extends PartialType(CreateCompanyDto) {
-  
   @IsString()
   @IsOptional()
   validationToken?: string;
@@ -15,22 +21,14 @@ export class UpdateCompanyDto extends PartialType(CreateCompanyDto) {
   @Type(() => String)
   isVerified?: boolean;
 
-
-
   @IsDate()
   @IsOptional()
   validationLinkValidateDate?: Date;
-
 
   @IsArray()
   @IsOptional()
   @Type(() => String)
   uploadedFiles?: Types.ObjectId[];
-
-  // uploadedFiles?: (string | Types.ObjectId)[];
-
-
-  
 
   @IsString()
   @IsOptional()
@@ -39,9 +37,6 @@ export class UpdateCompanyDto extends PartialType(CreateCompanyDto) {
   @IsDate()
   @IsOptional()
   updatedCompanyDate?: Date;
-
-
-
 
   @IsDate()
   @IsOptional()
@@ -57,30 +52,17 @@ export class UpdateCompanyDto extends PartialType(CreateCompanyDto) {
 
   @IsNumber()
   @IsOptional()
-  extraFileCharge?: number
- 
-
-
-
-
-
-
-
-
+  extraFileCharge?: number;
 
   @IsBoolean()
   @IsOptional()
   subscriptionFirstUpgrade?: boolean;
 
-
-
-
   @IsNumber()
   @IsOptional()
-  linkResendCount?: number
+  linkResendCount?: number;
 
   @IsDate()
   @IsOptional()
-  firstResendAttemptDate?: Date
-
+  firstResendAttemptDate?: Date;
 }

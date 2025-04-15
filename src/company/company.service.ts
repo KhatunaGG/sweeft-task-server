@@ -63,5 +63,4 @@ export class CompanyService {
   create(@Body() createCompanyDto: CreateCompanyDto) {
     return this.companyModel.create(createCompanyDto);
   }
-
 }
