@@ -85,7 +85,8 @@ export class UserService {
       validationLinkValidateDate.setTime(
         validationLinkValidateDate.getTime() + 3 * 60 * 1000,
       );
-      const fullValidationLink = `${process.env.FRONTEND_URL}/user-sign-in?token=${validationToken}`;
+      // const fullValidationLink = `${process.env.FRONTEND_URL}/user-sign-in?token=${validationToken}`;
+      const fullValidationLink = `https://sweeft-task-client.vercel.app/user-sign-in?token=${validationToken}`;
       const newUser = {
         userEmail,
         companyId,
