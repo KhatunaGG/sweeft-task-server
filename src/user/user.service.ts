@@ -43,9 +43,6 @@ export class UserService {
     if (companyId.toString() !== userId.toString()) {
       throw new ForbiddenException('Permission denied');
     }
-    console.log(userId, 'userId');
-    console.log(companyId, 'companyId');
-
     try {
       const { userEmail } = createUserDto;
       if (!userEmail) {
